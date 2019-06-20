@@ -306,27 +306,27 @@ static int read_sensor()
 
 static void display_bars()
 {
-    extern sensor_info_t   sensor_info;
-    extern Adafruit_ST7735 tft;
-    uint16_t barWidth = (tft.width()) / AS726x_NUM_CHANNELS;
-    bool     refresh = false;
+  extern sensor_info_t   sensor_info;
+  extern Adafruit_ST7735 tft;
+  uint16_t barWidth = (tft.width()) / AS726x_NUM_CHANNELS;
+  bool     refresh = false;
 
-    // array of bar colors
-    // This table is held in Flash memory to save precious RAM
-    // Use of PROGMEM and pgm_xxx() functions is necessary
-    static const PROGMEM uint16_t colors[AS726x_NUM_CHANNELS] = {
+  // array of predefined bar colors
+  // This table is held in Flash memory to save precious RAM
+  // Use of PROGMEM and pgm_xxx() functions is necessary
+  static const PROGMEM uint16_t colors[AS726x_NUM_CHANNELS] = {
       MAGENTA,
       BLUE,
       GREEN,
       YELLOW,
       ORANGE,
       RED
-    };
+  };
 
-    static uint16_t height[AS726x_NUM_CHANNELS][2]; // display bars buffers
-    static uint8_t  curBuf = 0;  // current buffer 
+  // Display bar buffers, used to minimize redrawings
+  static uint16_t height[AS726x_NUM_CHANNELS][2];
+  static uint8_t  curBuf = 0;                     // current buffer 
 
-   
 
   // see if we really have to redraw the bars
   for(int i=0; i<AS726x_NUM_CHANNELS; i++) {
@@ -592,8 +592,6 @@ static void setup_tft()
   tft.setRotation(3);            
   tft.fillScreen(ST7735_BLACK);
   
-  // initialize digital pin LED_BUILTIN as an output.
-  pinMode(LED_BUILTIN, OUTPUT);
   Serial.println(F("TFT initialized"));
 }
 
