@@ -306,27 +306,44 @@ static int read_sensor()
 
 static void display_bars()
 {
-  // array of bar colors
-  // This table is held in Flash memory to save precious RAM
-  // Use of PROGMEM and pgm_xxx() functions is necessary
-  static const PROGMEM uint16_t colors[AS726x_NUM_CHANNELS] = {
-    MAGENTA,
-    BLUE,
-    GREEN,
-    YELLOW,
-    ORANGE,
-    RED
-  };
+    extern sensor_info_t   sensor_info;
+    extern Adafruit_ST7735 tft;
+    uint16_t barWidth = (tft.width()) / AS726x_NUM_CHANNELS;
+    bool     refresh = false;
 
-  extern sensor_info_t sensor_info;
-  
-  uint16_t barWidth = (tft.width()) / AS726x_NUM_CHANNELS;
+    // array of bar colors
+    // This table is held in Flash memory to save precious RAM
+    // Use of PROGMEM and pgm_xxx() functions is necessary
+    static const PROGMEM uint16_t colors[AS726x_NUM_CHANNELS] = {
+      MAGENTA,
+      BLUE,
+      GREEN,
+      YELLOW,
+      ORANGE,
+      RED
+    };
+
+    static uint16_t height[AS726x_NUM_CHANNELS][2]; // display bars buffers
+    static uint8_t  curBuf = 0;  // current buffer 
+
+   
+
+  // see if we really have to redraw the bars
   for(int i=0; i<AS726x_NUM_CHANNELS; i++) {
-    uint16_t color  = pgm_read_word(&colors[i]);
-    uint16_t height = map(sensor_info.calibratedValues[i], 0, SENSOR_MAX, 0, tft.height());
-    tft.fillRect(barWidth * i, 0, barWidth, tft.height() - height, ST7735_BLACK);
-    tft.fillRect(barWidth * i, tft.height() - height, barWidth, height, color);
+    height[i][curBuf] = map(sensor_info.calibratedValues[i], 0, SENSOR_MAX, 0, tft.height());
+    if (height[i][curBuf] != height[i][curBuf  ^ 0x01]) {
+      refresh = true;
+    }
   }
+
+  if (refresh) { 
+    for(int i=0; i<AS726x_NUM_CHANNELS; i++) {
+      uint16_t color  = pgm_read_word(&colors[i]);  
+      tft.fillRect(barWidth * i, 0, barWidth, tft.height() - height[i][curBuf], ST7735_BLACK);
+      tft.fillRect(barWidth * i, tft.height() - height[i][curBuf], barWidth, height[i][curBuf], color);
+    }
+  }
+  curBuf ^= 0x01; // switch to the other buffer
 }
 
 /* ************************************************************************** */ 
