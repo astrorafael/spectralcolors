@@ -126,6 +126,10 @@ typedef struct {
   uint8_t  temperature;    // device internal temperature
 } sensor_info_t;
 
+typedef struct {
+  uint8_t backlight;    // miniTFTWing backlight value in percentage
+} tft_info_t;
+
 // Menu action function pointer as a typedef
 typedef void (*menu_action_t)(void);
 
@@ -145,6 +149,10 @@ Adafruit_AS726x ams;
 // buffer to hold raw & calibrated values as well as exposure time and gain
 sensor_info_t sensor_info;
 
+
+// buffer to hold raw & calibrated values as well as exposure time and gain
+tft_info_t tft_info;
+
 /* ************************************************************************** */ 
 /*                      GUI STATE MACHINE DECLARATIONS                        */
 /* ************************************************************************** */ 
@@ -163,7 +171,8 @@ enum gui_events {
 
 // TFT Screens as states
 enum gui_state {
-  GUI_GAIN_SCREEN     = 0,
+  GUI_LIGHT_SCREEN     = 0,
+  GUI_GAIN_SCREEN,
   GUI_EXPOSURE_SCREEN,
   GUI_READINGS_SCREEN
 };
@@ -175,6 +184,9 @@ static void act_idle();
 static void act_gain_enter();
 static void act_gain_up();
 static void act_gain_down();
+static void act_light_enter();
+static void act_light_up();
+static void act_light_down();
 static void act_exposure_enter();
 static void act_exposure_up();
 static void act_exposure_down();
@@ -186,17 +198,17 @@ static void act_readings_enter();
 // Use of PROGMEM and pgm_xxx() functions is necessary
 static menu_action_t get_action(uint8_t state, uint8_t event)
 {
-  static const menu_action_t menu_action[][3] PROGMEM = {
-    // GAIN SCREEN      |   EXPOSURE SCREEN    | READINGS SCREEN
-    //------------------+----------------------+-----------------
-    {act_idle,           act_idle,               act_readings_enter}, // GUI_NO_EVENT
-    {act_gain_up,        act_exposure_up,        act_idle},           // GUI_KEY_A_PRESSED
-    {act_gain_down,      act_exposure_down,      act_idle},           // GUI_KEY_B_PRESSED
-    {act_idle,           act_idle,               act_idle},           // GUI_JOY_PRESSED
-    {act_gain_up,        act_exposure_up,        act_idle},           // GUI_JOY_UP
-    {act_gain_down,      act_exposure_down,      act_idle},           // GUI_JOY_DOWN
-    {act_readings_enter, act_gain_enter,         act_exposure_enter}, // GUI_JOY_LEFT
-    {act_exposure_enter, act_readings_enter,     act_gain_enter}      // GUI_JOY_RIGHT
+  static const menu_action_t menu_action[][4] PROGMEM = {
+    // BACKLIGHT SCREEN | GAIN SCREEN      |   EXPOSURE SCREEN    | READINGS SCREEN
+    //------------------+------------------+----------------------+-----------------
+    { act_idle,           act_idle,           act_idle,               act_readings_enter }, // GUI_NO_EVENT
+    { act_light_up,       act_gain_up,        act_exposure_up,        act_idle           }, // GUI_KEY_A_PRESSED
+    { act_light_down,     act_gain_down,      act_exposure_down,      act_idle           }, // GUI_KEY_B_PRESSED
+    { act_idle,           act_idle,           act_idle,               act_idle           }, // GUI_JOY_PRESSED
+    { act_light_up,       act_gain_up,        act_exposure_up,        act_idle           }, // GUI_JOY_UP
+    { act_light_down,     act_gain_down,      act_exposure_down,      act_idle           }, // GUI_JOY_DOWN
+    { act_readings_enter, act_light_enter,    act_gain_enter,         act_exposure_enter }, // GUI_JOY_LEFT
+    { act_gain_enter,     act_exposure_enter, act_readings_enter,     act_light_enter    }  // GUI_JOY_RIGHT
   };
   return (menu_action_t) pgm_read_ptr(&menu_action[event][state]);
 }
@@ -208,17 +220,17 @@ static menu_action_t get_action(uint8_t state, uint8_t event)
 // Use of PROGMEM and pgm_xxx() functions is necessary
 static uint8_t get_next_screen(uint8_t state, uint8_t event)
 {
-  static const PROGMEM uint8_t next_screen[][3] = {
-      // GAIN SCREEN      |   EXPOSURE SCREEN    | READINGS SCREEN
-      //------------------+----------------------+-----------------
-      {GUI_GAIN_SCREEN,     GUI_EXPOSURE_SCREEN,   GUI_READINGS_SCREEN}, // GUI_NO_EVENT
-      {GUI_GAIN_SCREEN,     GUI_EXPOSURE_SCREEN,   GUI_READINGS_SCREEN}, // GUI_KEY_A_PRESSED
-      {GUI_GAIN_SCREEN,     GUI_EXPOSURE_SCREEN,   GUI_READINGS_SCREEN}, // GUI_KEY_B_PRESSED
-      {GUI_GAIN_SCREEN,     GUI_EXPOSURE_SCREEN,   GUI_READINGS_SCREEN}, // GUI_JOY_PRESSED
-      {GUI_GAIN_SCREEN,     GUI_EXPOSURE_SCREEN,   GUI_READINGS_SCREEN}, // GUI_JOY_UP
-      {GUI_GAIN_SCREEN,     GUI_EXPOSURE_SCREEN,   GUI_READINGS_SCREEN}, // GUI_JOY_DOWN
-      {GUI_READINGS_SCREEN, GUI_GAIN_SCREEN,       GUI_EXPOSURE_SCREEN}, // GUI_JOY_LEFT
-      {GUI_EXPOSURE_SCREEN, GUI_READINGS_SCREEN,   GUI_GAIN_SCREEN}      // GUI_JOY_RIGHT
+  static const PROGMEM uint8_t next_screen[][4] = {
+    // BACKLIGHT SCREEN | GAIN SCREEN      |   EXPOSURE SCREEN    | READINGS SCREEN
+    //------------------+------------------+----------------------+-----------------
+      { GUI_LIGHT_SCREEN,    GUI_GAIN_SCREEN,     GUI_EXPOSURE_SCREEN,   GUI_READINGS_SCREEN }, // GUI_NO_EVENT
+      { GUI_LIGHT_SCREEN,    GUI_GAIN_SCREEN,     GUI_EXPOSURE_SCREEN,   GUI_READINGS_SCREEN }, // GUI_KEY_A_PRESSED
+      { GUI_LIGHT_SCREEN,    GUI_GAIN_SCREEN,     GUI_EXPOSURE_SCREEN,   GUI_READINGS_SCREEN }, // GUI_KEY_B_PRESSED
+      { GUI_LIGHT_SCREEN,    GUI_GAIN_SCREEN,     GUI_EXPOSURE_SCREEN,   GUI_READINGS_SCREEN }, // GUI_JOY_PRESSED
+      { GUI_LIGHT_SCREEN,    GUI_GAIN_SCREEN,     GUI_EXPOSURE_SCREEN,   GUI_READINGS_SCREEN }, // GUI_JOY_UP
+      { GUI_LIGHT_SCREEN,    GUI_GAIN_SCREEN,     GUI_EXPOSURE_SCREEN,   GUI_READINGS_SCREEN }, // GUI_JOY_DOWN
+      { GUI_READINGS_SCREEN, GUI_LIGHT_SCREEN,    GUI_GAIN_SCREEN,       GUI_EXPOSURE_SCREEN }, // GUI_JOY_LEFT
+      { GUI_GAIN_SCREEN,     GUI_EXPOSURE_SCREEN, GUI_READINGS_SCREEN,   GUI_LIGHT_SCREEN    }  // GUI_JOY_RIGHT
     };
   return pgm_read_byte(&next_screen[event][state]);
 }
@@ -348,6 +360,26 @@ static void display_gain()
 
 /* ************************************************************************** */ 
 
+
+static void display_backlight()
+{
+  extern tft_info_t tft_info;
+  
+  tft.fillScreen(ST7735_BLACK);
+  // Display the "Gain" sttring in TFT
+  tft.setTextSize(3); // 3x the original font
+  tft.setCursor(0, 0);
+  tft.setTextColor(ST7735_WHITE, ST7735_BLACK);
+  tft.print("Baklight");
+  // Display the gain value string in TFT
+  tft.setCursor(tft.height()/3, tft.width()/3);
+  tft.setTextColor(ST7735_YELLOW, ST7735_BLACK);
+  tft.print(tft_info.backlight); tft.print(" %");
+  
+}
+
+/* ************************************************************************** */ 
+
 static void display_exposure()
 {
   extern sensor_info_t sensor_info;
@@ -407,6 +439,45 @@ static void act_exposure_down()
   sensor_info.exposure = constrain(exposure, 1, 255);
   ams.setIntegrationTime(sensor_info.exposure); 
   display_exposure();
+  delay(SHORT_DELAY);
+}
+
+
+/* ------------------------------------------------------------------------- */ 
+
+static void act_light_enter()
+{ 
+  display_backlight();
+  delay(SHORT_DELAY);
+}
+
+/* ------------------------------------------------------------------------- */ 
+
+static void act_light_up()
+{
+  extern Adafruit_miniTFTWing ss;
+  extern tft_info_t tft_info;
+  int   backlight;
+
+  backlight = tft_info.backlight + 10;
+  tft_info.backlight = constrain(backlight, 10, 100);
+  ss.setBacklight(65535-(tft_info.backlight*65535)/100); 
+  display_backlight();
+  delay(SHORT_DELAY);
+}
+
+/* ------------------------------------------------------------------------- */ 
+
+static void act_light_down()
+{
+  extern Adafruit_miniTFTWing ss;
+  extern tft_info_t tft_info;
+  int    backlight;
+
+  backlight = tft_info.backlight - 10;
+  tft_info.backlight = constrain(backlight, 10, 100);
+  ss.setBacklight(65535-(tft_info.backlight*65535)/100); 
+  display_backlight();
   delay(SHORT_DELAY);
 }
 
@@ -485,6 +556,7 @@ static void setup_tft()
 {
   extern Adafruit_miniTFTWing ss;
   extern Adafruit_ST7735     tft;
+  extern tft_info_t          tft_info;
   // acknowledges the Seesaw chip before sending commands to the TFT display
   if (!ss.begin()) {
     Serial.println(F("seesaw couldn't be found!"));
@@ -495,9 +567,9 @@ static void setup_tft()
   Serial.println(ss.getVersion(), HEX);
 
   ss.tftReset();   // reset the display via a seesaw command
-  ss.setBacklight(TFTWING_BACKLIGHT_ON);  // turn on the backlight
-  //ss.setBacklight(0x0000);  // turn off the backlight
-  //ss.setBacklightFreq(5000);  // turn on the backlight
+  ss.setBacklight(TFTWING_BACKLIGHT_ON/2);  // turn on the backlight
+  tft_info.backlight = 50;
+  //ss.setBacklightFreq(10);  // turn on the backlight
 
   tft.initR(INITR_MINI160x80);   // initialize a ST7735S chip, mini display
   tft.setRotation(3);            
