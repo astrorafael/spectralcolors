@@ -27,10 +27,13 @@
 
               Arduino Nano        AS7262 Spectral Sensor
               ============        ======================
+               EXT0            <----- INT
+
                     /
                    |  A4 (SDA)  -----> SDA 
               I2C  |  A5 (SCL)  -----> SCL 
                    \
+
                    /
                    |   3.3V    <====> 3.3V 
               Pwr  |   GND     <====> GND
@@ -44,15 +47,20 @@
                    |     D5     -----> CS
                    |     D6     -----> DC
                    \
+
                    /
                    |  A4 (SDA)  -----> SDA (+10k pullup)
               I2C  |  A5 (SCL)  -----> SCL (+10k pullup)
                    \
+
                    /
                    |   3.3V    <====> 3.3V 
               Pwr  |   GND     <====> GND
                    \
 
+The built-in LED is attached to pin Arduino Nano D13. 
+However, this pin is used to interface miniTCFWing via SPI
+So, the built-in LED becomes unusable after miniTFTWing initialization
 
 */
 
