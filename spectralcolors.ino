@@ -302,10 +302,8 @@ static int read_sensor()
     ams.readRawValues(sensor_info.rawValues);
     sensor_info.temperature = ams.readTemperature();
     //Serial.print('+');
-    digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level)
   } else {
     //Serial.print('-');
-    digitalWrite(LED_BUILTIN, LOW);   // turn the LED on (HIGH is the voltage level)
   }
   return freshData;
 }
@@ -613,7 +611,6 @@ void setup()
 {
   Serial.begin(9600);
   Serial.println(F("Sketch version: " GIT_VERSION));
-  pinMode(LED_BUILTIN, OUTPUT);
   setup_sensor();
   setup_tft();
 }
