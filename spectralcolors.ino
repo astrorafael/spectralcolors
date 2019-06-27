@@ -290,22 +290,20 @@ static uint8_t read_buttons()
 /* ************************************************************************** */ 
 
 
-static int read_sensor()
+static uint8_t read_sensor()
 {
   extern Adafruit_AS726x ams;
   extern sensor_info_t sensor_info;
-  uint8_t freshData = 0;
+  uint8_t dataReady;
 
-  if(ams.dataReady()) {
-    freshData = 1;
+  dataReady = ams.dataReady();
+  if(dataReady) {
     ams.readCalibratedValues(sensor_info.calibratedValues);
     ams.readRawValues(sensor_info.rawValues);
     sensor_info.temperature = ams.readTemperature();
     //Serial.print('+');
-  } else {
-    //Serial.print('-');
   }
-  return freshData;
+  return dataReady;
 }
 
 /* ************************************************************************** */ 
@@ -544,10 +542,8 @@ static void act_readings_enter()
 {
   uint8_t freshData;
   freshData = read_sensor();
-  if (freshData)
-    display_bars();
-  else
-    display_bars();
+  display_bars();
+  if(!freshData)
     delay(SHORT_DELAY);
 }
 
@@ -571,6 +567,7 @@ static void setup_sensor()
   sensor_info.exposure = 50;
   // continuous conversion time
   ams.setConversionType(MODE_2);
+  pinMode(2, INPUT_PULLUP); // EXT0
 }
 
 /* ************************************************************************** */ 
