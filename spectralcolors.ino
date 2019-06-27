@@ -607,6 +607,7 @@ static void setup_tft()
 void setup() 
 {
   Serial.begin(9600);
+  while(!Serial);
   Serial.println(F("Sketch version: " GIT_VERSION));
   setup_sensor();
   setup_tft();
