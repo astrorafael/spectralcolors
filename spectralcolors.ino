@@ -27,7 +27,7 @@
 
               Arduino Nano        AS7262 Spectral Sensor
               ============        ======================
-               EXT0            <----- INT
+               D2 (EXT0)        <----- INT
 
                     /
                    |  A4 (SDA)  -----> SDA 
