@@ -279,7 +279,7 @@ static uint8_t get_next_screen(uint8_t state, uint8_t event)
 // A small helper
 static void error(const __FlashStringHelper* err) 
 {
-  Serial.println(err);
+  //Serial.println(err);
   while (1);
 }
 
@@ -629,7 +629,7 @@ static void setup_ble()
 
   // Set module to DATA mode
   ble.setMode(BLUEFRUIT_MODE_DATA);
-  Serial.println(F("Bluefruit initialized"));
+  //Serial.println(F("Bluefruit initialized"));
 }
 
 /* ************************************************************************** */ 
@@ -648,8 +648,8 @@ static void setup_sensor()
   sensor_info.gain     = GAIN_64X;
   sensor_info.exposure = 50;
   // continuous conversion time
-  ams.setConversionType(MODE_2);
-  Serial.println(F("AS7262 initialized"));
+  //ams.setConversionType(MODE_2);
+  //Serial.println(F("AS7262 initialized"));
 }
 
 /* ************************************************************************** */ 
@@ -676,7 +676,7 @@ static void setup_tft()
   tft.setRotation(3);            
   tft.fillScreen(ST7735_BLACK);
   
-  Serial.println(F("TFT initialized"));
+  //Serial.println(F("TFT initialized"));
 }
 
 
@@ -689,10 +689,10 @@ void setup()
 {
   Serial.begin(115200);
   while(!Serial);
-  Serial.println(F("Sketch version: " GIT_VERSION));
-  setup_ble();
   setup_sensor();
   setup_tft(); 
+  setup_ble();
+  Serial.println(F("Sketch version: " GIT_VERSION));
 }
 
 void loop() 
