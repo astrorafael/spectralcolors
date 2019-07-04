@@ -25,12 +25,12 @@
 
 /*
 
-              Arduino Nano        AS7262 Spectral Sensor
+              Arduino 32u4        AS7262 Spectral Sensor
               ============        ======================
 
                     /
-                   |  A4 (SDA)  -----> SDA 
-              I2C  |  A5 (SCL)  -----> SCL 
+                   |  #2 (SDA)  -----> SDA 
+              I2C  |  #3 (SCL)  -----> SCL 
                    \
 
                    /
@@ -38,18 +38,18 @@
               Pwr  |   GND     <====> GND
                    \
 
-              Arduino Nano        miniTFTWing
+              Arduino 32u4        miniTFTWing
               ============        ===========
                    /
-                   | D11 (MOSI) -----> MOSI
-              SPI <  D13 (SCK)  -----> SCLK
-                   |     D5     -----> CS
-                   |     D6     -----> DC
+                   | MOSI   ----->   MOSI
+              SPI <  SCK)   ----->   SCLK
+                   |  #5    ----->   CS
+                   |  #6    ----->   DC
                    \
 
                    /
-                   |  A4 (SDA)  -----> SDA (+10k pullup)
-              I2C  |  A5 (SCL)  -----> SCL (+10k pullup)
+                   |  #2 (SDA)  -----> SDA (+2k2 pullup)
+              I2C  |  #3 (SCL)  -----> SCL (+2k2 pullup)
                    \
 
                    /
@@ -57,15 +57,22 @@
               Pwr  |   GND     <====> GND
                    \
 
-The built-in LED is attached to pin Arduino Nano D13. 
-However, this pin is used to interface miniTCFWing via SPI
-So, the built-in LED becomes unusable after miniTFTWing initialization
+    Arduino 32u4 Pins SCK, MOSI, MISO, #8, #7 and #4 are used by the internal BT module.
 
 */
 
 /* ************************************************************************** */ 
 /*                           INCLUDE HEADERS SECTION                          */
 /* ************************************************************************** */ 
+
+// Support for the Git version tags
+#include "git-version.h"
+
+#include "BluefruitConfig.h"
+
+// Standard Arduino librarioes
+#include <Arduino.h>
+#include <SPI.h>
 
 // Adafruit Spectral Sensor library
 #include <Adafruit_AS726x.h>
@@ -75,8 +82,16 @@ So, the built-in LED becomes unusable after miniTFTWing initialization
 #include <Adafruit_ST7735.h> 		   // Hardware-specific library
 #include <Adafruit_miniTFTWing.h>  // Seesaw library for the miniTFT Wing display
 
-// Support for the Git version tags
-#include "git-version.h"
+
+// Adafruit Bluetooth libraries
+#include "Adafruit_BLE.h"
+#include "Adafruit_BluefruitLE_SPI.h"
+#include "Adafruit_BluefruitLE_UART.h"
+
+
+#if SOFTWARE_SERIAL_AVAILABLE
+  #include <SoftwareSerial.h>
+#endif
 
 /* ************************************************************************** */ 
 /*                                DEFINEs SECTION                             */
@@ -88,8 +103,14 @@ So, the built-in LED becomes unusable after miniTFTWing initialization
 // ----------------------------------------------------------
 
 #define TFT_RST -1  // miniTFTwing uses the seesaw chip for resetting to save a pin
-#define TFT_CS   5 // Arduino nano D5 pin
-#define TFT_DC   6 // Arduini nano D6 pin
+#define TFT_CS   5 // Arduino 32u4 #5 pin
+#define TFT_DC   6 // Arduini 32u4 #6 pin
+
+// BLE module stuff
+#define FACTORYRESET_ENABLE         0
+#define MINIMUM_FIRMWARE_VERSION    "0.6.6"
+#define MODE_LED_BEHAVIOUR          "MODE"
+
 
 // Exposure time step in milliseconds
 #define EXPOSURE_UNIT 2.8
@@ -156,9 +177,13 @@ Adafruit_AS726x ams;
 // buffer to hold raw & calibrated values as well as exposure time and gain
 sensor_info_t sensor_info;
 
-
 // buffer to hold raw & calibrated values as well as exposure time and gain
 tft_info_t tft_info;
+
+/* Hardware SPI, using SCK/MOSI/MISO hardware SPI pins and then user selected CS/IRQ/RST */
+Adafruit_BluefruitLE_SPI ble(BLUEFRUIT_SPI_CS, 
+                            BLUEFRUIT_SPI_IRQ, 
+                            BLUEFRUIT_SPI_RST);
 
 /* ************************************************************************** */ 
 /*                      GUI STATE MACHINE DECLARATIONS                        */
@@ -244,6 +269,20 @@ static uint8_t get_next_screen(uint8_t state, uint8_t event)
 
 /* ************************************************************************** */ 
 /*                            HELPER FUNCTIONS                                */
+/* ************************************************************************** */ 
+
+/* ************************************************************************** */ 
+/*                            HELPER FUNCTIONS                                */
+/* ************************************************************************** */ 
+
+
+// A small helper
+static void error(const __FlashStringHelper* err) 
+{
+  Serial.println(err);
+  while (1);
+}
+
 /* ************************************************************************** */ 
 
 // Reads miniTFTWing buttons & joystick and produces events
@@ -416,13 +455,30 @@ static void display_exposure()
 }
 
 
+static void send_bluetooth()
+{
+  extern sensor_info_t sensor_info;
+  extern Adafruit_BluefruitLE_SPI ble;
+  String line;
+
+  for (int i=0; i< 5; i++) {
+      line += String(sensor_info.calibratedValues[i], 4); 
+      line += String(';');
+  }
+  line += String(sensor_info.calibratedValues[5], 4); 
+  line += String('\n');
+  ble.print(line.c_str());
+}
+
 /* ************************************************************************** */ 
 /*                      STATE MACHINE ACTION FUNCTIONS                        */
 /* ************************************************************************** */ 
 
 static void act_idle()
 {
-  read_sensor();
+  if (read_sensor()) {
+    send_bluetooth();
+  }
 }
 
 /* ------------------------------------------------------------------------- */ 
@@ -549,6 +605,45 @@ static void act_readings_enter()
 /*                              SETUP FUNCTIONS                              */
 /* ************************************************************************** */ 
 
+static void setup_ble()
+{
+  extern sensor_info_t sensor_info;
+  extern Adafruit_AS726x ams;
+  
+  if ( !ble.begin(VERBOSE_MODE) ) {
+    error(F("Couldn't find Bluefruit"));
+  }
+
+  if ( FACTORYRESET_ENABLE ) {
+    /* Perform a factory reset to make sure everything is in a known state */
+    if ( ! ble.factoryReset() ){
+      error(F("Couldn't factory reset"));
+    }
+  }
+
+  /* Disable command echo from Bluefruit */
+  ble.echo(false);
+  ble.info();
+  ble.verbose(false);  // debug info is a little annoying after this point!
+
+  /* Wait for connection */
+  while (! ble.isConnected()) {
+      delay(500);
+  }
+
+  // LED Activity command is only supported from 0.6.6
+  if ( ble.isVersionAtLeast(MINIMUM_FIRMWARE_VERSION) ) {
+    // Change Mode LED Activity
+    ble.sendCommandCheckOK("AT+HWModeLED=" MODE_LED_BEHAVIOUR);
+  }
+
+  // Set module to DATA mode
+  ble.setMode(BLUEFRUIT_MODE_DATA);
+  Serial.println(F("Bluefruit initialized"));
+}
+
+/* ************************************************************************** */ 
+
 static void setup_sensor()
 {
   extern sensor_info_t sensor_info;
@@ -556,8 +651,7 @@ static void setup_sensor()
   
   // finds the 6 channel chip
   if(!ams.begin()){
-    Serial.println(F("could not connect to sensor! Please check your wiring."));
-    while(1);
+    error(F("could not connect to sensor! Please check your wiring."));
   }
   // as initialized by the AS7262 library
   // Note that in MODE 2, the exposure time is actually doubled
@@ -607,8 +701,9 @@ void setup()
   Serial.begin(9600);
   while(!Serial);
   Serial.println(F("Sketch version: " GIT_VERSION));
+  setup_ble();
   setup_sensor();
-  setup_tft();
+  setup_tft(); 
 }
 
 void loop() 
