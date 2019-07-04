@@ -68,12 +68,6 @@
 // Support for the Git version tags
 #include "git-version.h"
 
-#include "BluefruitConfig.h"
-
-// Standard Arduino librarioes
-#include <Arduino.h>
-#include <SPI.h>
-
 // Adafruit Spectral Sensor library
 #include <Adafruit_AS726x.h>
 
@@ -82,20 +76,26 @@
 #include <Adafruit_ST7735.h> 		   // Hardware-specific library
 #include <Adafruit_miniTFTWing.h>  // Seesaw library for the miniTFT Wing display
 
-
 // Adafruit Bluetooth libraries
-#include "Adafruit_BLE.h"
-#include "Adafruit_BluefruitLE_SPI.h"
-#include "Adafruit_BluefruitLE_UART.h"
-
-
-#if SOFTWARE_SERIAL_AVAILABLE
-  #include <SoftwareSerial.h>
-#endif
+#include <Adafruit_BLE.h>
+#include <Adafruit_BluefruitLE_SPI.h>
 
 /* ************************************************************************** */ 
 /*                                DEFINEs SECTION                             */
 /* ************************************************************************** */ 
+
+// BLUETOOTH SHARED SPI SETTINGS
+// -----------------------------------------------------------------------------
+// The following macros declare the pins to use for HW and SW SPI communication.
+// SCK, MISO and MOSI should be connected to the HW SPI pins on the Uno when
+// using HW SPI.  This should be used with nRF51822 based Bluefruit LE modules
+// that use SPI (Bluefruit LE SPI Friend).
+// ------------------------------------------------------------------------------
+
+#define BLUEFRUIT_SPI_CS               8
+#define BLUEFRUIT_SPI_IRQ              7
+#define BLUEFRUIT_SPI_RST              4    // Optional but recommended, set to -1 if unused
+#define VERBOSE_MODE                   true  // If set to 'true' enables debug output
 
 // ---------------------------------------------------------
 // Define which Arduino nano pins will control the TFT Reset, 
@@ -413,11 +413,10 @@ static void display_gain()
   tft.setCursor(tft.height()/3, tft.width()/3);
   tft.setTextColor(ST7735_YELLOW, ST7735_BLACK);
   tft.print(gain_table[sensor_info.gain]);
-  
+  delay(SHORT_DELAY);
 }
 
 /* ************************************************************************** */ 
-
 
 static void display_backlight()
 {
@@ -433,7 +432,7 @@ static void display_backlight()
   tft.setCursor(tft.height()/3, tft.width()/3);
   tft.setTextColor(ST7735_YELLOW, ST7735_BLACK);
   tft.print(tft_info.backlight); tft.print(" %");
-  
+  delay(SHORT_DELAY);
 }
 
 /* ************************************************************************** */ 
@@ -452,8 +451,10 @@ static void display_exposure()
   tft.setCursor(0, tft.width()/3);
   tft.setTextColor(ST7735_YELLOW, ST7735_BLACK);
   tft.print(sensor_info.exposure*EXPOSURE_UNIT,1); tft.print(" ms");
+  delay(SHORT_DELAY);
 }
 
+/* ************************************************************************** */ 
 
 static void send_bluetooth()
 {
@@ -486,7 +487,6 @@ static void act_idle()
 static void act_exposure_enter()
 { 
   display_exposure();
-  delay(SHORT_DELAY);
 }
 
 /* ------------------------------------------------------------------------- */ 
@@ -500,7 +500,6 @@ static void act_exposure_up()
   sensor_info.exposure = constrain(exposure, 1, 255);
   ams.setIntegrationTime(sensor_info.exposure); 
   display_exposure();
-  delay(SHORT_DELAY);
 }
 
 /* ------------------------------------------------------------------------- */ 
@@ -514,7 +513,6 @@ static void act_exposure_down()
   sensor_info.exposure = constrain(exposure, 1, 255);
   ams.setIntegrationTime(sensor_info.exposure); 
   display_exposure();
-  delay(SHORT_DELAY);
 }
 
 
@@ -523,7 +521,6 @@ static void act_exposure_down()
 static void act_light_enter()
 { 
   display_backlight();
-  delay(SHORT_DELAY);
 }
 
 /* ------------------------------------------------------------------------- */ 
@@ -538,7 +535,6 @@ static void act_light_up()
   tft_info.backlight = constrain(backlight, 10, 100);
   ss.setBacklight(65535-(tft_info.backlight*65535)/100); 
   display_backlight();
-  delay(SHORT_DELAY);
 }
 
 /* ------------------------------------------------------------------------- */ 
@@ -553,7 +549,6 @@ static void act_light_down()
   tft_info.backlight = constrain(backlight, 10, 100);
   ss.setBacklight(65535-(tft_info.backlight*65535)/100); 
   display_backlight();
-  delay(SHORT_DELAY);
 }
 
 /* ------------------------------------------------------------------------- */ 
@@ -561,7 +556,6 @@ static void act_light_down()
 static void act_gain_enter()
 { 
   display_gain();
-  delay(SHORT_DELAY);
 }
 
 /* ------------------------------------------------------------------------- */ 
@@ -574,7 +568,6 @@ static void act_gain_up()
   sensor_info.gain = (sensor_info.gain + 1) & 0b11;
   ams.setGain(sensor_info.gain); 
   display_gain();
-  delay(SHORT_DELAY);
 }
 
 /* ------------------------------------------------------------------------- */ 
@@ -587,7 +580,6 @@ static void act_gain_down()
   sensor_info.gain = (sensor_info.gain - 1) & 0b11;
   ams.setGain(sensor_info.gain); 
   display_gain();
-  delay(SHORT_DELAY);
 }
 
 /* ------------------------------------------------------------------------- */ 
@@ -632,10 +624,10 @@ static void setup_ble()
   }
 
   // LED Activity command is only supported from 0.6.6
-  if ( ble.isVersionAtLeast(MINIMUM_FIRMWARE_VERSION) ) {
+  /*if ( ble.isVersionAtLeast(MINIMUM_FIRMWARE_VERSION) ) {
     // Change Mode LED Activity
     ble.sendCommandCheckOK("AT+HWModeLED=" MODE_LED_BEHAVIOUR);
-  }
+  }*/
 
   // Set module to DATA mode
   ble.setMode(BLUEFRUIT_MODE_DATA);
@@ -671,12 +663,11 @@ static void setup_tft()
   extern tft_info_t          tft_info;
   // acknowledges the Seesaw chip before sending commands to the TFT display
   if (!ss.begin()) {
-    Serial.println(F("seesaw couldn't be found!"));
-    while(1); // stops forever if cannto initialize
+    error(F("seesaw couldn't be found!"));
   }
 
-  Serial.print(F("seesaw started!\tVersion: "));
-  Serial.println(ss.getVersion(), HEX);
+  //Serial.print(F("seesaw started!\tVersion: "));
+  //Serial.println(ss.getVersion(), HEX);
 
   ss.tftReset();   // reset the display via a seesaw command
   ss.setBacklight(TFTWING_BACKLIGHT_ON/2);  // turn on the backlight
