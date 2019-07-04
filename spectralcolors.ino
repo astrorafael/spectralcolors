@@ -27,7 +27,6 @@
 
               Arduino Nano        AS7262 Spectral Sensor
               ============        ======================
-               D2 (EXT0)        <----- INT
 
                     /
                    |  A4 (SDA)  -----> SDA 
@@ -301,7 +300,6 @@ static uint8_t read_sensor()
     ams.readCalibratedValues(sensor_info.calibratedValues);
     ams.readRawValues(sensor_info.rawValues);
     sensor_info.temperature = ams.readTemperature();
-    //Serial.print('+');
   }
   return dataReady;
 }
@@ -567,7 +565,7 @@ static void setup_sensor()
   sensor_info.exposure = 50;
   // continuous conversion time
   ams.setConversionType(MODE_2);
-  pinMode(2, INPUT_PULLUP); // EXT0
+  Serial.println(F("AS7262 initialized"));
 }
 
 /* ************************************************************************** */ 
