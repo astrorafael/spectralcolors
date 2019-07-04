@@ -95,7 +95,7 @@
 #define BLUEFRUIT_SPI_CS               8
 #define BLUEFRUIT_SPI_IRQ              7
 #define BLUEFRUIT_SPI_RST              4    // Optional but recommended, set to -1 if unused
-#define VERBOSE_MODE                   true  // If set to 'true' enables debug output
+#define VERBOSE_MODE                   false  // If set to 'true' enables debug output
 
 // ---------------------------------------------------------
 // Define which Arduino nano pins will control the TFT Reset, 
@@ -606,17 +606,15 @@ static void setup_ble()
     error(F("Couldn't find Bluefruit"));
   }
 
-  if ( FACTORYRESET_ENABLE ) {
+  if ( FACTORYRESET_ENABLE && ! ble.factoryReset() ) {
     /* Perform a factory reset to make sure everything is in a known state */
-    if ( ! ble.factoryReset() ){
-      error(F("Couldn't factory reset"));
-    }
+    error(F("Couldn't factory reset"));
   }
 
   /* Disable command echo from Bluefruit */
   ble.echo(false);
-  ble.info();
-  ble.verbose(false);  // debug info is a little annoying after this point!
+  //ble.info();
+  //ble.verbose(false);  // debug info is a little annoying after this point!
 
   /* Wait for connection */
   while (! ble.isConnected()) {
@@ -689,7 +687,7 @@ static void setup_tft()
 
 void setup() 
 {
-  Serial.begin(9600);
+  Serial.begin(115200);
   while(!Serial);
   Serial.println(F("Sketch version: " GIT_VERSION));
   setup_ble();
