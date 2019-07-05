@@ -332,7 +332,7 @@ static void display_bars()
 
   // see if we really have to redraw the bars
   for(int i=0; i<AS726x_NUM_CHANNELS; i++) {
-    height[i][curBuf] = map(sensor_info.calibratedValues[i], 0, SENSOR_MAX, 0, tft.height());
+    height[i][curBuf] = map(sensor_info.rawValues[i], 0, SENSOR_MAX, 0, tft.height());
     if (height[i][curBuf] != height[i][curBuf  ^ 0x01]) {
       refresh = true;
     }
