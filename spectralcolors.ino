@@ -279,7 +279,7 @@ static uint8_t get_next_screen(uint8_t state, uint8_t event)
 // A small helper
 static void error(const __FlashStringHelper* err) 
 {
-  //Serial.println(err);
+  Serial.println(err);
   while (1);
 }
 
@@ -603,12 +603,12 @@ static void setup_ble()
   extern Adafruit_AS726x ams;
   
   if ( !ble.begin(VERBOSE_MODE) ) {
-    error(F("Couldn't find Bluefruit"));
+    error(F("Couldn't find Bluefruit!"));
   }
 
   if ( FACTORYRESET_ENABLE && ! ble.factoryReset() ) {
     /* Perform a factory reset to make sure everything is in a known state */
-    error(F("Couldn't factory reset"));
+    error(F("Couldn't factory reset Bluefruit!"));
   }
 
   /* Disable command echo from Bluefruit */
@@ -618,18 +618,15 @@ static void setup_ble()
 
   /* Wait for connection */
   while (! ble.isConnected()) {
-      delay(500);
+    delay(500);
   }
 
-  // LED Activity command is only supported from 0.6.6
-  /*if ( ble.isVersionAtLeast(MINIMUM_FIRMWARE_VERSION) ) {
-    // Change Mode LED Activity
-    ble.sendCommandCheckOK("AT+HWModeLED=" MODE_LED_BEHAVIOUR);
-  }*/
+  // LED Activity command is only supported from Fiormware version 0.6.6
+  ble.sendCommandCheckOK("AT+HWModeLED=" MODE_LED_BEHAVIOUR);
 
   // Set module to DATA mode
   ble.setMode(BLUEFRUIT_MODE_DATA);
-  //Serial.println(F("Bluefruit initialized"));
+  Serial.println(F("Bluefruit initialized"));
 }
 
 /* ************************************************************************** */ 
@@ -641,15 +638,15 @@ static void setup_sensor()
   
   // finds the 6 channel chip
   if(!ams.begin()){
-    error(F("could not connect to sensor! Please check your wiring."));
+    error(F("could not connect to AS7262!"));
   }
   // as initialized by the AS7262 library
   // Note that in MODE 2, the exposure time is actually doubled
   sensor_info.gain     = GAIN_64X;
   sensor_info.exposure = 50;
-  // continuous conversion time
+  // continuous conversion time is already done by default in the ams driver
   //ams.setConversionType(MODE_2);
-  //Serial.println(F("AS7262 initialized"));
+  Serial.println(F("AS7262 initialized"));
 }
 
 /* ************************************************************************** */ 
@@ -676,7 +673,7 @@ static void setup_tft()
   tft.setRotation(3);            
   tft.fillScreen(ST7735_BLACK);
   
-  //Serial.println(F("TFT initialized"));
+  Serial.println(F("TFT initialized"));
 }
 
 
@@ -689,11 +686,12 @@ void setup()
 {
   Serial.begin(115200);
   while(!Serial);
+  Serial.println(F("Sketch version: " GIT_VERSION));
+  setup_ble();
   setup_sensor();
   setup_tft(); 
-  setup_ble();
-  Serial.println(F("Sketch version: " GIT_VERSION));
 }
+
 
 void loop() 
 {
