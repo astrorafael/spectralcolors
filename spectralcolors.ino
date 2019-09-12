@@ -24,13 +24,32 @@
 /* ************************************************************************** */ 
 
 /*
+              Arduino Nano        BLE SPI Friend Module
+              ============        ======================
 
-              Arduino 32u4        AS7262 Spectral Sensor
+                   /
+                   | D11 (MOSI) -----> MOSI
+                   | D12 (MISO) -----> MISO
+              SPI <  D13 (SCK)  -----> SCLK
+                   |     D8     -----> CS
+                   \
+                   /
+                   |     D7     -----> IRQ
+                   |     D4     -----> RESET
+                   \
+
+                   /
+                   |   3.3V    <====> 3.3V 
+              Pwr  |   GND     <====> GND
+                   \
+
+
+              Arduino Nano        AS7262 Spectral Sensor
               ============        ======================
 
                     /
-                   |  #2 (SDA)  -----> SDA 
-              I2C  |  #3 (SCL)  -----> SCL 
+                   |  A4 (SDA)  -----> SDA 
+              I2C  |  A5 (SCL)  -----> SCL 
                    \
 
                    /
@@ -38,18 +57,18 @@
               Pwr  |   GND     <====> GND
                    \
 
-              Arduino 32u4        miniTFTWing
+              Arduino Nano        miniTFTWing
               ============        ===========
                    /
-                   | MOSI   ----->   MOSI
-              SPI <  SCK)   ----->   SCLK
-                   |  #5    ----->   CS
-                   |  #6    ----->   DC
+                   | D11 (MOSI) -----> MOSI
+              SPI <  D13 (SCK)  -----> SCLK
+                   |     D5     -----> CS
+                   |     D6     -----> DC
                    \
 
                    /
-                   |  #2 (SDA)  -----> SDA (+2k2 pullup)
-              I2C  |  #3 (SCL)  -----> SCL (+2k2 pullup)
+                   |  A4 (SDA)  -----> SDA (+10k pullup)
+              I2C  |  A5 (SCL)  -----> SCL (+10k pullup)
                    \
 
                    /
@@ -57,9 +76,12 @@
               Pwr  |   GND     <====> GND
                    \
 
-    Arduino 32u4 Pins SCK, MOSI, MISO, #8, #7 and #4 are used by the internal BT module.
+The built-in LED is attached to pin Arduino Nano D13. 
+However, this pin is used to interface miniTCFWing via SPI
+So, the built-in LED becomes unusable after miniTFTWing initialization
 
 */
+
 
 /* ************************************************************************** */ 
 /*                           INCLUDE HEADERS SECTION                          */
@@ -103,8 +125,8 @@
 // ----------------------------------------------------------
 
 #define TFT_RST -1  // miniTFTwing uses the seesaw chip for resetting to save a pin
-#define TFT_CS   5 // Arduino 32u4 #5 pin
-#define TFT_DC   6 // Arduini 32u4 #6 pin
+#define TFT_CS   5 // Arduino Nano D5 pin
+#define TFT_DC   6 // Arduini Nano D6 pin
 
 // BLE module stuff
 #define FACTORYRESET_ENABLE         0
@@ -292,7 +314,7 @@ static uint8_t read_buttons()
 
   uint8_t event = GUI_NO_EVENT;
 // ####################
-  return event;
+// return event;
 // ####################
   // miniTFT wing buttons;
   uint32_t buttons;
@@ -638,7 +660,7 @@ static void setup_sensor()
 {
   extern sensor_info_t sensor_info;
   extern Adafruit_AS726x ams;
-  
+ 
   // finds the 6 channel chip
   if(!ams.begin()){
     error(F("could not connect to AS7262!"));
@@ -664,8 +686,8 @@ static void setup_tft()
     error(F("seesaw couldn't be found!"));
   }
 
-  //Serial.print(F("seesaw started!\tVersion: "));
-  //Serial.println(ss.getVersion(), HEX);
+  Serial.print(F("seesaw started!\tVersion: "));
+  Serial.println(ss.getVersion(), HEX);
 
   ss.tftReset();   // reset the display via a seesaw command
   ss.setBacklight(TFTWING_BACKLIGHT_ON/2);  // turn on the backlight
@@ -692,7 +714,7 @@ void setup()
   Serial.println(F("Sketch version: " GIT_VERSION));
   //setup_ble();
   setup_sensor();
-  //setup_tft(); 
+  setup_tft(); 
 }
 
 
