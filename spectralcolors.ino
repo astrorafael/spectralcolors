@@ -313,8 +313,8 @@ static uint8_t read_buttons()
   extern Adafruit_miniTFTWing ss;
 
   uint8_t event = GUI_NO_EVENT;
-// ####################
-// return event;
+// ####### SHORTCUT ########
+  return event;
 // ####################
   // miniTFT wing buttons;
   uint32_t buttons;
@@ -501,6 +501,9 @@ static void send_bluetooth()
 
 static void act_idle()
 {
+  // step 1 SHORTCUT
+  Serial.println('+'); return;
+
   if (read_sensor()) {
     Serial.print('+');
     //send_bluetooth();
@@ -713,8 +716,8 @@ void setup()
   while(!Serial);
   Serial.println(F("Sketch version: " GIT_VERSION));
   //setup_ble();
-  setup_sensor();
-  setup_tft(); 
+  //setup_sensor();
+  //setup_tft(); 
 }
 
 
