@@ -626,6 +626,7 @@ static void act_readings_enter()
 static void setup_ble()
 {
   extern Adafruit_BluefruitLE_SPI ble;
+
   Serial.print(F("[I] Bluefruit SPI ... "));
   
   if ( !ble.begin(VERBOSE_MODE) ) {
@@ -639,6 +640,13 @@ static void setup_ble()
 
   /* Disable command echo from Bluefruit */
   ble.echo(false);
+  // LED Activity command is only supported from Fiormware version 0.6.6
+  ble.sendCommandCheckOK("AT+HWModeLED=" MODE_LED_BEHAVIOUR);
+   
+  // Set module to DATA mode
+  ble.setMode(BLUEFRUIT_MODE_DATA);
+  Serial.println(F("ok"));
+
   //ble.info();
   //ble.verbose(false);  // debug info is a little annoying after this point!
 
@@ -647,12 +655,8 @@ static void setup_ble()
     delay(500);
   }
 
-  // LED Activity command is only supported from Fiormware version 0.6.6
-  ble.sendCommandCheckOK("AT+HWModeLED=" MODE_LED_BEHAVIOUR);
-
-  // Set module to DATA mode
-  ble.setMode(BLUEFRUIT_MODE_DATA);
-  Serial.println(F("ok"));
+ 
+  
 }
 
 /* ************************************************************************** */ 
@@ -719,7 +723,7 @@ void setup()
   Serial.println(F("Sketch version: " GIT_VERSION));
   setup_sensor();
   setup_tft(); 
-  //setup_ble();
+  setup_ble();
 }
 
 
