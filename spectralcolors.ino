@@ -53,7 +53,7 @@
                    \
 
                    /
-                   |   3.3V    <====> 3.3V 
+                   |   3.3V    <====> VIN 
               Pwr  |   GND     <====> GND
                    \
 
@@ -314,7 +314,7 @@ static uint8_t read_buttons()
 
   uint8_t event = GUI_NO_EVENT;
 // ####### SHORTCUT ########
-  return event;
+  //return event;
 // ####################
   // miniTFT wing buttons;
   uint32_t buttons;
@@ -625,8 +625,8 @@ static void act_readings_enter()
 
 static void setup_ble()
 {
-  extern sensor_info_t sensor_info;
-  extern Adafruit_AS726x ams;
+  extern Adafruit_BluefruitLE_SPI ble;
+  Serial.print(F("[I] Bluefruit SPI ... "));
   
   if ( !ble.begin(VERBOSE_MODE) ) {
     error(F("Couldn't find Bluefruit!"));
@@ -652,7 +652,7 @@ static void setup_ble()
 
   // Set module to DATA mode
   ble.setMode(BLUEFRUIT_MODE_DATA);
-  Serial.println(F("Bluefruit initialized"));
+  Serial.println(F("ok"));
 }
 
 /* ************************************************************************** */ 
@@ -662,6 +662,7 @@ static void setup_sensor()
   extern sensor_info_t sensor_info;
   extern Adafruit_AS726x ams;
  
+  Serial.print(F("[I] AS7262 ... "));
   // finds the 6 channel chip
   if(!ams.begin()){
     error(F("could not connect to AS7262!"));
@@ -672,7 +673,7 @@ static void setup_sensor()
   sensor_info.exposure = 50;
   // continuous conversion time is already done by default in the ams driver
   //ams.setConversionType(MODE_2);
-  Serial.println(F("AS7262 initialized"));
+  Serial.println(F("ok"));
 }
 
 /* ************************************************************************** */ 
@@ -682,24 +683,27 @@ static void setup_tft()
   extern Adafruit_miniTFTWing ss;
   extern Adafruit_ST7735     tft;
   extern tft_info_t          tft_info;
+
+  Serial.print(F("[I] SeeSaw ... "));
   // acknowledges the Seesaw chip before sending commands to the TFT display
   if (!ss.begin()) {
     error(F("seesaw couldn't be found!"));
   }
 
-  Serial.print(F("seesaw started!\tVersion: "));
-  Serial.println(ss.getVersion(), HEX);
+  Serial.print(F("ok"));
+  Serial.print(F(", ver: "));
+  Serial.println(ss.getVersion(), HEX); 
+ 
 
   ss.tftReset();   // reset the display via a seesaw command
   ss.setBacklight(TFTWING_BACKLIGHT_ON/2);  // turn on the backlight
   tft_info.backlight = 50;
   //ss.setBacklightFreq(10);  // turn on the backlight
-
+  Serial.print(F("[I] miniTFT ... "));
   tft.initR(INITR_MINI160x80);   // initialize a ST7735S chip, mini display
   tft.setRotation(3);            
   tft.fillScreen(ST7735_BLACK);
-  
-  Serial.println(F("TFT initialized"));
+  Serial.println(F("ok"));
 }
 
 
@@ -713,9 +717,9 @@ void setup()
   Serial.begin(115200);
   while(!Serial);
   Serial.println(F("Sketch version: " GIT_VERSION));
-  //setup_ble();
   setup_sensor();
-  //setup_tft(); 
+  setup_tft(); 
+  //setup_ble();
 }
 
 
