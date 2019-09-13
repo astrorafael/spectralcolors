@@ -313,9 +313,7 @@ static uint8_t read_buttons()
   extern Adafruit_miniTFTWing ss;
 
   uint8_t event = GUI_NO_EVENT;
-// ####### SHORTCUT ########
-  //return event;
-// ####################
+
   // miniTFT wing buttons;
   uint32_t buttons;
 
@@ -484,8 +482,14 @@ static void send_bluetooth()
 {
   extern sensor_info_t sensor_info;
   extern Adafruit_BluefruitLE_SPI ble;
+  static unsigned long seq = 0;
   String line;
+ 
+  // Sequence number and relative timepsamp
+  line += String(seq++);  line += String(';');
+  line += String(millis()); line += String(';');
 
+  // Calibrated values
   for (int i=0; i< 5; i++) {
       line += String(sensor_info.calibratedValues[i], 4); 
       line += String(';');
@@ -501,10 +505,13 @@ static void send_bluetooth()
 
 static void act_idle()
 {
-  
+  extern Adafruit_BluefruitLE_SPI ble;
+
   if (read_sensor()) {
-    Serial.print('+');
-    //send_bluetooth();
+    //Serial.print('+');
+    if (ble.isConnected()) {
+      send_bluetooth();
+    }
   }
 }
 
@@ -642,21 +649,12 @@ static void setup_ble()
   ble.echo(false);
   // LED Activity command is only supported from Fiormware version 0.6.6
   ble.sendCommandCheckOK("AT+HWModeLED=" MODE_LED_BEHAVIOUR);
-   
+
   // Set module to DATA mode
   ble.setMode(BLUEFRUIT_MODE_DATA);
   Serial.println(F("ok"));
-
   //ble.info();
   //ble.verbose(false);  // debug info is a little annoying after this point!
-
-  /* Wait for connection */
-  while (! ble.isConnected()) {
-    delay(500);
-  }
-
- 
-  
 }
 
 /* ************************************************************************** */ 
