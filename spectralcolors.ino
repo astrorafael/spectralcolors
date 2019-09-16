@@ -713,10 +713,9 @@ static void act_gain_down()
 
 static void act_spectrum_enter()
 {
-  uint8_t freshData = read_as7262_sensor();
+  act_idle();
   display_bars();
-  if(!freshData)
-    delay(SHORT_DELAY);
+  delay(SHORT_DELAY);
 }
 
 /* ------------------------------------------------------------------------- */ 
@@ -725,6 +724,7 @@ static void act_lux_enter()
 {
   act_idle();
   display_lux();
+  delay(SHORT_DELAY);
 }
 
 /* ************************************************************************** */ 
