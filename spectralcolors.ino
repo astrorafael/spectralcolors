@@ -261,13 +261,14 @@ static void act_idle();
 static void act_gain_enter();
 static void act_gain_up();
 static void act_gain_down();
-static void act_light_enter();
-static void act_light_up();
-static void act_light_down();
+static void act_baklight_enter();
+static void act_baklight_up();
+static void act_baklight_down();
 static void act_exposure_enter();
 static void act_exposure_up();
 static void act_exposure_down();
-static void act_readings_enter();
+static void act_spectrum_enter();
+static void act_lux_enter();
 
 
 // Action to execute as a function of current state and event
@@ -275,17 +276,17 @@ static void act_readings_enter();
 // Use of PROGMEM and pgm_xxx() functions is necessary
 static menu_action_t get_action(uint8_t state, uint8_t event)
 {
-  static const menu_action_t menu_action[][4] PROGMEM = {
-    // BACKLIGHT SCREEN | GAIN SCREEN      |   EXPOSURE SCREEN    | READINGS SCREEN
-    //------------------+------------------+----------------------+-----------------
-    { act_idle,           act_idle,           act_idle,               act_readings_enter }, // GUI_NO_EVENT
-    { act_light_up,       act_gain_up,        act_exposure_up,        act_idle           }, // GUI_KEY_A_PRESSED
-    { act_light_down,     act_gain_down,      act_exposure_down,      act_idle           }, // GUI_KEY_B_PRESSED
-    { act_idle,           act_idle,           act_idle,               act_idle           }, // GUI_JOY_PRESSED
-    { act_light_up,       act_gain_up,        act_exposure_up,        act_idle           }, // GUI_JOY_UP
-    { act_light_down,     act_gain_down,      act_exposure_down,      act_idle           }, // GUI_JOY_DOWN
-    { act_readings_enter, act_light_enter,    act_gain_enter,         act_exposure_enter }, // GUI_JOY_LEFT
-    { act_gain_enter,     act_exposure_enter, act_readings_enter,     act_light_enter    }  // GUI_JOY_RIGHT
+  static const menu_action_t menu_action[][5] PROGMEM = {
+    // BACKLIGHT SCREEN | GAIN SCREEN      |   EXPOSURE SCREEN    |    SPECTRUM SCREEN   | LUX SCREEN
+    //------------------+------------------+----------------------+----------------------+------------
+    { act_idle,           act_idle,           act_idle,               act_spectrum_enter,  act_lux_enter      }, // GUI_NO_EVENT
+    { act_baklight_up,    act_gain_up,        act_exposure_up,        act_idle,            act_idle           }, // GUI_KEY_A_PRESSED
+    { act_baklight_down,  act_gain_down,      act_exposure_down,      act_idle,            act_idle           }, // GUI_KEY_B_PRESSED
+    { act_idle,           act_idle,           act_idle,               act_idle,            act_idle           }, // GUI_JOY_PRESSED
+    { act_baklight_up,    act_gain_up,        act_exposure_up,        act_idle,            act_idle           }, // GUI_JOY_UP
+    { act_baklight_down,  act_gain_down,      act_exposure_down,      act_idle,            act_idle           }, // GUI_JOY_DOWN
+    { act_spectrum_enter, act_baklight_enter, act_gain_enter,         act_exposure_enter,  act_spectrum_enter }, // GUI_JOY_LEFT
+    { act_gain_enter,     act_exposure_enter, act_spectrum_enter,     act_lux_enter,       act_baklight_enter }  // GUI_JOY_RIGHT
   };
   return (menu_action_t) pgm_read_ptr(&menu_action[event][state]);
 }
@@ -394,7 +395,7 @@ static uint8_t read_opt3001_sensor()
 
 /* ************************************************************************** */ 
 
-static uint8_t read_2s7262_sensor()
+static uint8_t read_as7262_sensor()
 {
   extern Adafruit_AS726x ams;
   extern as7262_info_t as7262_info;
@@ -516,7 +517,48 @@ static void display_exposure()
 
 /* ************************************************************************** */ 
 
-static void send_bluetooth()
+static void display_lux()
+{
+  extern OPT3001 opt3001_info;
+
+  tft.fillScreen(ST7735_BLACK);
+  // Display the "Gain" sttring in TFT
+  tft.setTextSize(3);
+  tft.setCursor(0,0);
+  tft.setTextColor(ST7735_WHITE, ST7735_BLACK);
+  tft.print("Lux");
+  // Display the exposure value string in TFT
+  tft.setCursor(0, tft.width()/3);
+  tft.setTextColor(ST7735_YELLOW, ST7735_BLACK);
+  tft.print(opt3001_info.lux,3);
+  delay(SHORT_DELAY);
+}
+
+/* ************************************************************************** */ 
+
+static void send_opt3001_bluetooth()
+{
+  extern Adafruit_BluefruitLE_SPI ble;
+
+  static unsigned long seq = 0; // Tx sequence number
+  String line;
+ 
+  // Start JSON sequence
+  line += String("['O',");
+  // Sequence number
+  line += String(seq++);  line += String(',');
+  // Relative timestamp
+  line += String(millis()); line += String(',');
+  // OPT 3001 lux readings
+  line += String(opt3001_info.lux, 4);
+  // End JSON sequence
+  line += String("]\n"); 
+  ble.print(line.c_str());  // send to BLE
+}
+
+/* ************************************************************************** */ 
+
+static void send_as7262_bluetooth()
 {
   extern as7262_info_t as7262_info;
   extern Adafruit_BluefruitLE_SPI ble;
@@ -525,14 +567,12 @@ static void send_bluetooth()
   static unsigned long seq = 0; // Tx sequence number
   String line;
  
-  // Start JSON sequence
-  line += String('[');
+   // Start JSON sequence
+  line += String("['A',");
   // Sequence number
   line += String(seq++);  line += String(',');
   // Relative timestamp
   line += String(millis()); line += String(',');
-
-  line += String(opt3001_info.lux, 3);  line += String(',');
   // AS7262 Exposure time in milliseconds
   line += String(as7262_info.exposure*EXPOSURE_UNIT,1); line += String(',');
   // AS7262 Gain
@@ -558,10 +598,17 @@ static void act_idle()
 {
   extern Adafruit_BluefruitLE_SPI ble;
 
-  if (read_2s7262_sensor() && read_opt3001_sensor()) {
+  if (read_as7262_sensor()) {
     //Serial.print('+');
     if (ble.isConnected()) {
-      send_bluetooth();
+      send_as7262_bluetooth();
+    }
+  }
+
+  if (read_opt3001_sensor()) {
+    //Serial.print('+');
+    if (ble.isConnected()) {
+      send_opt3001_bluetooth();
     }
   }
 }
@@ -602,14 +649,14 @@ static void act_exposure_down()
 
 /* ------------------------------------------------------------------------- */ 
 
-static void act_light_enter()
+static void act_baklight_enter()
 { 
   display_backlight();
 }
 
 /* ------------------------------------------------------------------------- */ 
 
-static void act_light_up()
+static void act_baklight_up()
 {
   extern Adafruit_miniTFTWing ss;
   extern tft_info_t tft_info;
@@ -623,7 +670,7 @@ static void act_light_up()
 
 /* ------------------------------------------------------------------------- */ 
 
-static void act_light_down()
+static void act_baklight_down()
 {
   extern Adafruit_miniTFTWing ss;
   extern tft_info_t tft_info;
@@ -668,11 +715,22 @@ static void act_gain_down()
 
 /* ------------------------------------------------------------------------- */ 
 
-static void act_readings_enter()
+static void act_spectrum_enter()
 {
   uint8_t freshData;
-  freshData = read_2s7262_sensor();
+  freshData = read_as7262_sensor();
   display_bars();
+  if(!freshData)
+    delay(SHORT_DELAY);
+}
+
+/* ------------------------------------------------------------------------- */ 
+
+static void act_lux_enter()
+{
+  uint8_t freshData;
+  freshData = read_opt3001_sensor();
+  display_lux();
   if(!freshData)
     delay(SHORT_DELAY);
 }
