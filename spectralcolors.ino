@@ -486,7 +486,8 @@ static void send_bluetooth()
   extern sensor_info_t sensor_info;
   extern Adafruit_BluefruitLE_SPI ble;
   extern const char* GainTable[];
-  static unsigned long seq = 0;
+
+  static unsigned long seq = 0; // Tx sequence number
   String line;
  
   // Start JSON sequence
@@ -501,15 +502,15 @@ static void send_bluetooth()
   line += String(GainTable[sensor_info.gain]); line += String(',');
   // Temperature
   line += String(sensor_info.temperature); line += String(',');
-
-  // Calibrated values
+  // 6-channel sensor calibrated values
   for (int i=0; i< 5; i++) {
       line += String(sensor_info.calibratedValues[i], 4); 
       line += String(',');
   }
   line += String(sensor_info.calibratedValues[5], 4); 
-  line += String("]\n"); // End JSON sequence
-  ble.print(line.c_str());
+  // End JSON sequence
+  line += String("]\n"); 
+  ble.print(line.c_str());  // send to BLE
 }
 
 /* ************************************************************************** */ 
