@@ -359,7 +359,7 @@ static uint8_t read_buttons()
 /* ************************************************************************** */ 
 
 
-static uint8_t read_sensor()
+static uint8_t read_sensors()
 {
   extern Adafruit_AS726x ams;
   extern sensor_info_t sensor_info;
@@ -521,7 +521,7 @@ static void act_idle()
 {
   extern Adafruit_BluefruitLE_SPI ble;
 
-  if (read_sensor()) {
+  if (read_sensors()) {
     //Serial.print('+');
     if (ble.isConnected()) {
       send_bluetooth();
@@ -634,7 +634,7 @@ static void act_gain_down()
 static void act_readings_enter()
 {
   uint8_t freshData;
-  freshData = read_sensor();
+  freshData = read_sensors();
   display_bars();
   if(!freshData)
     delay(SHORT_DELAY);
@@ -673,7 +673,7 @@ static void setup_ble()
 
 /* ************************************************************************** */ 
 
-static void setup_sensor()
+static void setup_as7262()
 {
   extern sensor_info_t sensor_info;
   extern Adafruit_AS726x ams;
@@ -733,9 +733,9 @@ void setup()
   Serial.begin(115200);
   while(!Serial);
   Serial.println(F("Sketch version: " GIT_VERSION));
-  setup_sensor();
-  setup_tft(); 
   setup_ble();
+  setup_as7262();
+  setup_tft(); 
 }
 
 
