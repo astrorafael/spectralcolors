@@ -87,6 +87,8 @@ So, the built-in LED becomes unusable after miniTFTWing initialization
 /*                           INCLUDE HEADERS SECTION                          */
 /* ************************************************************************** */ 
 
+#include <avr/sleep.h>
+
 // Support for the Git version tags
 #include "git-version.h"
 
@@ -102,9 +104,15 @@ So, the built-in LED becomes unusable after miniTFTWing initialization
 #include <Adafruit_BLE.h>
 #include <Adafruit_BluefruitLE_SPI.h>
 
+// ClosedCube OPT3001 library
+#include <ClosedCube_OPT3001.h>
+
 /* ************************************************************************** */ 
 /*                                DEFINEs SECTION                             */
 /* ************************************************************************** */ 
+
+// OPT 3001 Address (0x45 by default)
+#define OPT3001_ADDRESS 0x45
 
 // BLUETOOTH SHARED SPI SETTINGS
 // -----------------------------------------------------------------------------
@@ -183,7 +191,7 @@ typedef struct {
   uint8_t  gain;           // device gain multiplier
   uint8_t  exposure;       // device integration time in steps of 2.8 ms
   uint8_t  temperature;    // device internal temperature
-} sensor_info_t;
+} as7262_info_t;
 
 typedef struct {
   uint8_t backlight;    // miniTFTWing backlight value in percentage
@@ -206,7 +214,7 @@ Adafruit_ST7735 tft = Adafruit_ST7735(TFT_CS, TFT_DC, TFT_RST);
 Adafruit_AS726x ams;
 
 // buffer to hold raw & calibrated values as well as exposure time and gain
-sensor_info_t sensor_info;
+as7262_info_t as7262_info;
 
 // buffer to hold raw & calibrated values as well as exposure time and gain
 tft_info_t tft_info;
@@ -215,6 +223,12 @@ tft_info_t tft_info;
 Adafruit_BluefruitLE_SPI ble(BLUEFRUIT_SPI_CS, 
                             BLUEFRUIT_SPI_IRQ, 
                             BLUEFRUIT_SPI_RST);
+
+// I2C OPT3001 sensor object
+ClosedCube_OPT3001 opt3001;
+
+// OPT3001 read sensor data
+OPT3001 opt3001_info;
 
 /* ************************************************************************** */ 
 /*                      GUI STATE MACHINE DECLARATIONS                        */
@@ -311,7 +325,11 @@ static uint8_t get_next_screen(uint8_t state, uint8_t event)
 static void error(const __FlashStringHelper* err) 
 {
   Serial.println(err);
-  while (1);
+  //delay(5000);
+  //sleep_enable();
+  //set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+  //sleep_cpu();
+  while(1) ;
 }
 
 /* ************************************************************************** */ 
@@ -358,18 +376,35 @@ static uint8_t read_buttons()
 
 /* ************************************************************************** */ 
 
+static uint8_t read_opt3001_sensor()
+{
+  extern ClosedCube_OPT3001 opt3001;
+  extern OPT3001 opt3001_info;
+ 
+  uint8_t dataReady;
 
-static uint8_t read_sensors()
+  OPT3001_Config sensorConfig = opt3001.readConfig();
+  dataReady = (sensorConfig.ConversionReady != 0);
+  if (dataReady) {
+    opt3001_info = opt3001.readResult();
+  }
+
+  return dataReady;
+}
+
+/* ************************************************************************** */ 
+
+static uint8_t read_2s7262_sensor()
 {
   extern Adafruit_AS726x ams;
-  extern sensor_info_t sensor_info;
+  extern as7262_info_t as7262_info;
   uint8_t dataReady;
 
   dataReady = ams.dataReady();
   if(dataReady) {
-    ams.readCalibratedValues(sensor_info.calibratedValues);
-    ams.readRawValues(sensor_info.rawValues);
-    sensor_info.temperature = ams.readTemperature();
+    ams.readCalibratedValues(as7262_info.calibratedValues);
+    ams.readRawValues(as7262_info.rawValues);
+    as7262_info.temperature = ams.readTemperature();
   }
   return dataReady;
 }
@@ -378,7 +413,7 @@ static uint8_t read_sensors()
 
 static void display_bars()
 {
-  extern sensor_info_t   sensor_info;
+  extern as7262_info_t   as7262_info;
   extern Adafruit_ST7735 tft;
   uint16_t barWidth = (tft.width()) / AS726x_NUM_CHANNELS;
   bool     refresh = false;
@@ -402,7 +437,7 @@ static void display_bars()
 
   // see if we really have to redraw the bars
   for(int i=0; i<AS726x_NUM_CHANNELS; i++) {
-    height[i][curBuf] = map(sensor_info.calibratedValues[i], 0, SENSOR_MAX, 0, tft.height());
+    height[i][curBuf] = map(as7262_info.calibratedValues[i], 0, SENSOR_MAX, 0, tft.height());
     if (height[i][curBuf] != height[i][curBuf  ^ 0x01]) {
       refresh = true;
     }
@@ -423,7 +458,7 @@ static void display_bars()
 
 static void display_gain()
 {
-  extern sensor_info_t sensor_info;
+  extern as7262_info_t as7262_info;
 
   
 
@@ -436,7 +471,7 @@ static void display_gain()
   // Display the gain value string in TFT
   tft.setCursor(tft.height()/3, tft.width()/3);
   tft.setTextColor(ST7735_YELLOW, ST7735_BLACK);
-  tft.print(GainTable[sensor_info.gain]);
+  tft.print(GainTable[as7262_info.gain]);
   tft.print('x');
   delay(SHORT_DELAY);
 }
@@ -464,7 +499,7 @@ static void display_backlight()
 
 static void display_exposure()
 {
-  extern sensor_info_t sensor_info;
+  extern as7262_info_t as7262_info;
 
   tft.fillScreen(ST7735_BLACK);
   // Display the "Gain" sttring in TFT
@@ -475,7 +510,7 @@ static void display_exposure()
   // Display the exposure value string in TFT
   tft.setCursor(0, tft.width()/3);
   tft.setTextColor(ST7735_YELLOW, ST7735_BLACK);
-  tft.print(sensor_info.exposure*EXPOSURE_UNIT,1); tft.print(" ms");
+  tft.print(as7262_info.exposure*EXPOSURE_UNIT,1); tft.print(" ms");
   delay(SHORT_DELAY);
 }
 
@@ -483,7 +518,7 @@ static void display_exposure()
 
 static void send_bluetooth()
 {
-  extern sensor_info_t sensor_info;
+  extern as7262_info_t as7262_info;
   extern Adafruit_BluefruitLE_SPI ble;
   extern const char* GainTable[];
 
@@ -496,18 +531,20 @@ static void send_bluetooth()
   line += String(seq++);  line += String(',');
   // Relative timestamp
   line += String(millis()); line += String(',');
-  // Exposure time in milliseconds
-  line += String(sensor_info.exposure*EXPOSURE_UNIT,1); line += String(',');
-  // Gain
-  line += String(GainTable[sensor_info.gain]); line += String(',');
-  // Temperature
-  line += String(sensor_info.temperature); line += String(',');
-  // 6-channel sensor calibrated values
+
+  line += String(opt3001_info.lux, 3);  line += String(',');
+  // AS7262 Exposure time in milliseconds
+  line += String(as7262_info.exposure*EXPOSURE_UNIT,1); line += String(',');
+  // AS7262 Gain
+  line += String(GainTable[as7262_info.gain]); line += String(',');
+  // AS7262 Temperature
+  line += String(as7262_info.temperature); line += String(',');
+  // AS7262 calibrated values
   for (int i=0; i< 5; i++) {
-      line += String(sensor_info.calibratedValues[i], 4); 
+      line += String(as7262_info.calibratedValues[i], 4); 
       line += String(',');
   }
-  line += String(sensor_info.calibratedValues[5], 4); 
+  line += String(as7262_info.calibratedValues[5], 4); 
   // End JSON sequence
   line += String("]\n"); 
   ble.print(line.c_str());  // send to BLE
@@ -521,7 +558,7 @@ static void act_idle()
 {
   extern Adafruit_BluefruitLE_SPI ble;
 
-  if (read_sensors()) {
+  if (read_2s7262_sensor() && read_opt3001_sensor()) {
     //Serial.print('+');
     if (ble.isConnected()) {
       send_bluetooth();
@@ -540,12 +577,12 @@ static void act_exposure_enter()
 
 static void act_exposure_up()
 {
-  extern sensor_info_t sensor_info;
+  extern as7262_info_t as7262_info;
   extern Adafruit_AS726x ams;
-  int exposure = sensor_info.exposure + EXPOSURE_STEPS;
+  int exposure = as7262_info.exposure + EXPOSURE_STEPS;
 
-  sensor_info.exposure = constrain(exposure, 1, 255);
-  ams.setIntegrationTime(sensor_info.exposure); 
+  as7262_info.exposure = constrain(exposure, 1, 255);
+  ams.setIntegrationTime(as7262_info.exposure); 
   display_exposure();
 }
 
@@ -553,12 +590,12 @@ static void act_exposure_up()
 
 static void act_exposure_down()
 {
-  extern sensor_info_t sensor_info;
+  extern as7262_info_t as7262_info;
   extern Adafruit_AS726x ams;
-  int exposure = sensor_info.exposure - EXPOSURE_STEPS;
+  int exposure = as7262_info.exposure - EXPOSURE_STEPS;
 
-  sensor_info.exposure = constrain(exposure, 1, 255);
-  ams.setIntegrationTime(sensor_info.exposure); 
+  as7262_info.exposure = constrain(exposure, 1, 255);
+  ams.setIntegrationTime(as7262_info.exposure); 
   display_exposure();
 }
 
@@ -609,11 +646,11 @@ static void act_gain_enter()
 
 static void act_gain_up()
 {
-  extern sensor_info_t sensor_info;
+  extern as7262_info_t as7262_info;
   extern Adafruit_AS726x ams;
 
-  sensor_info.gain = (sensor_info.gain + 1) & 0b11;
-  ams.setGain(sensor_info.gain); 
+  as7262_info.gain = (as7262_info.gain + 1) & 0b11;
+  ams.setGain(as7262_info.gain); 
   display_gain();
 }
 
@@ -621,11 +658,11 @@ static void act_gain_up()
 
 static void act_gain_down()
 {
-  extern sensor_info_t sensor_info;
+  extern as7262_info_t as7262_info;
   extern Adafruit_AS726x ams;
 
-  sensor_info.gain = (sensor_info.gain - 1) & 0b11;
-  ams.setGain(sensor_info.gain); 
+  as7262_info.gain = (as7262_info.gain - 1) & 0b11;
+  ams.setGain(as7262_info.gain); 
   display_gain();
 }
 
@@ -634,7 +671,7 @@ static void act_gain_down()
 static void act_readings_enter()
 {
   uint8_t freshData;
-  freshData = read_sensors();
+  freshData = read_2s7262_sensor();
   display_bars();
   if(!freshData)
     delay(SHORT_DELAY);
@@ -675,7 +712,7 @@ static void setup_ble()
 
 static void setup_as7262()
 {
-  extern sensor_info_t sensor_info;
+  extern as7262_info_t as7262_info;
   extern Adafruit_AS726x ams;
  
   Serial.print(F("[I] AS7262 ... "));
@@ -685,8 +722,8 @@ static void setup_as7262()
   }
   // as initialized by the AS7262 library
   // Note that in MODE 2, the exposure time is actually doubled
-  sensor_info.gain     = GAIN_64X;
-  sensor_info.exposure = 50;
+  as7262_info.gain     = GAIN_64X;
+  as7262_info.exposure = 50;
   // continuous conversion time is already done by default in the ams driver
   //ams.setConversionType(MODE_2);
   Serial.println(F("ok"));
@@ -722,6 +759,28 @@ static void setup_tft()
   Serial.println(F("ok"));
 }
 
+/* ************************************************************************** */ 
+
+static void setup_opt3001()
+{
+  extern ClosedCube_OPT3001 opt3001;
+
+  Serial.print(F("[I] OPT3001 ... "));
+  opt3001.begin(OPT3001_ADDRESS);
+
+  OPT3001_Config config;
+  
+  config.RangeNumber               = B1100;  // Automatic full-scale
+  config.ConvertionTime            = B1;     // 800 ms
+  config.Latch                     = B1;     // ???
+  config.ModeOfConversionOperation = B11;    // Continuou operation
+
+  OPT3001_ErrorCode errorConfig = opt3001.writeConfig(config);
+  if (errorConfig != NO_ERROR) {
+    error(F("OPT3001 config error!"));
+  }
+  Serial.println(F("ok"));
+}
 
 /* ************************************************************************** */ 
 /*                                MAIN SECTION                               */
@@ -735,6 +794,7 @@ void setup()
   Serial.println(F("Sketch version: " GIT_VERSION));
   setup_ble();
   setup_as7262();
+  setup_opt3001();
   setup_tft(); 
 }
 
