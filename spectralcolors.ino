@@ -248,10 +248,11 @@ enum gui_events {
 
 // TFT Screens as states
 enum gui_state {
-  GUI_LIGHT_SCREEN     = 0,
+  GUI_BAKLIGHT_SCREEN     = 0,
   GUI_GAIN_SCREEN,
   GUI_EXPOSURE_SCREEN,
-  GUI_READINGS_SCREEN
+  GUI_SPECTRUM_SCREEN,
+  GUI_LUX_SCREEN
 };
 
 // --------------------------------------------
@@ -285,7 +286,7 @@ static menu_action_t get_action(uint8_t state, uint8_t event)
     { act_idle,           act_idle,           act_idle,               act_idle,            act_idle           }, // GUI_JOY_PRESSED
     { act_baklight_up,    act_gain_up,        act_exposure_up,        act_idle,            act_idle           }, // GUI_JOY_UP
     { act_baklight_down,  act_gain_down,      act_exposure_down,      act_idle,            act_idle           }, // GUI_JOY_DOWN
-    { act_spectrum_enter, act_baklight_enter, act_gain_enter,         act_exposure_enter,  act_spectrum_enter }, // GUI_JOY_LEFT
+    { act_lux_enter,      act_baklight_enter, act_gain_enter,         act_exposure_enter,  act_spectrum_enter }, // GUI_JOY_LEFT
     { act_gain_enter,     act_exposure_enter, act_spectrum_enter,     act_lux_enter,       act_baklight_enter }  // GUI_JOY_RIGHT
   };
   return (menu_action_t) pgm_read_ptr(&menu_action[event][state]);
@@ -298,17 +299,17 @@ static menu_action_t get_action(uint8_t state, uint8_t event)
 // Use of PROGMEM and pgm_xxx() functions is necessary
 static uint8_t get_next_screen(uint8_t state, uint8_t event)
 {
-  static const PROGMEM uint8_t next_screen[][4] = {
-    // BACKLIGHT SCREEN | GAIN SCREEN      |   EXPOSURE SCREEN    | READINGS SCREEN
-    //------------------+------------------+----------------------+-----------------
-      { GUI_LIGHT_SCREEN,    GUI_GAIN_SCREEN,     GUI_EXPOSURE_SCREEN,   GUI_READINGS_SCREEN }, // GUI_NO_EVENT
-      { GUI_LIGHT_SCREEN,    GUI_GAIN_SCREEN,     GUI_EXPOSURE_SCREEN,   GUI_READINGS_SCREEN }, // GUI_KEY_A_PRESSED
-      { GUI_LIGHT_SCREEN,    GUI_GAIN_SCREEN,     GUI_EXPOSURE_SCREEN,   GUI_READINGS_SCREEN }, // GUI_KEY_B_PRESSED
-      { GUI_LIGHT_SCREEN,    GUI_GAIN_SCREEN,     GUI_EXPOSURE_SCREEN,   GUI_READINGS_SCREEN }, // GUI_JOY_PRESSED
-      { GUI_LIGHT_SCREEN,    GUI_GAIN_SCREEN,     GUI_EXPOSURE_SCREEN,   GUI_READINGS_SCREEN }, // GUI_JOY_UP
-      { GUI_LIGHT_SCREEN,    GUI_GAIN_SCREEN,     GUI_EXPOSURE_SCREEN,   GUI_READINGS_SCREEN }, // GUI_JOY_DOWN
-      { GUI_READINGS_SCREEN, GUI_LIGHT_SCREEN,    GUI_GAIN_SCREEN,       GUI_EXPOSURE_SCREEN }, // GUI_JOY_LEFT
-      { GUI_GAIN_SCREEN,     GUI_EXPOSURE_SCREEN, GUI_READINGS_SCREEN,   GUI_LIGHT_SCREEN    }  // GUI_JOY_RIGHT
+  static const PROGMEM uint8_t next_screen[][5] = {
+    // BACKLIGHT SCREEN      | GAIN SCREEN      |   EXPOSURE SCREEN    |    SPECTRUM SCREEN   | LUX SCREEN
+    //----------------------+------------------+-----------------------+-----------------------+------------
+      { GUI_BAKLIGHT_SCREEN,  GUI_GAIN_SCREEN,     GUI_EXPOSURE_SCREEN,   GUI_SPECTRUM_SCREEN, GUI_LUX_SCREEN }, // GUI_NO_EVENT
+      { GUI_BAKLIGHT_SCREEN,  GUI_GAIN_SCREEN,     GUI_EXPOSURE_SCREEN,   GUI_SPECTRUM_SCREEN, GUI_LUX_SCREEN }, // GUI_KEY_A_PRESSED
+      { GUI_BAKLIGHT_SCREEN,  GUI_GAIN_SCREEN,     GUI_EXPOSURE_SCREEN,   GUI_SPECTRUM_SCREEN, GUI_LUX_SCREEN }, // GUI_KEY_B_PRESSED
+      { GUI_BAKLIGHT_SCREEN,  GUI_GAIN_SCREEN,     GUI_EXPOSURE_SCREEN,   GUI_SPECTRUM_SCREEN, GUI_LUX_SCREEN }, // GUI_JOY_PRESSED
+      { GUI_BAKLIGHT_SCREEN,  GUI_GAIN_SCREEN,     GUI_EXPOSURE_SCREEN,   GUI_SPECTRUM_SCREEN, GUI_LUX_SCREEN }, // GUI_JOY_UP
+      { GUI_BAKLIGHT_SCREEN,  GUI_GAIN_SCREEN,     GUI_EXPOSURE_SCREEN,   GUI_SPECTRUM_SCREEN, GUI_LUX_SCREEN }, // GUI_JOY_DOWN
+      { GUI_LUX_SCREEN,       GUI_BAKLIGHT_SCREEN, GUI_GAIN_SCREEN,       GUI_EXPOSURE_SCREEN, GUI_SPECTRUM_SCREEN }, // GUI_JOY_LEFT
+      { GUI_GAIN_SCREEN,      GUI_EXPOSURE_SCREEN, GUI_SPECTRUM_SCREEN,   GUI_LUX_SCREEN,      GUI_BAKLIGHT_SCREEN }  // GUI_JOY_RIGHT
     };
   return pgm_read_byte(&next_screen[event][state]);
 }
@@ -381,15 +382,13 @@ static uint8_t read_opt3001_sensor()
 {
   extern ClosedCube_OPT3001 opt3001;
   extern OPT3001 opt3001_info;
- 
-  uint8_t dataReady;
 
   OPT3001_Config sensorConfig = opt3001.readConfig();
-  dataReady = (sensorConfig.ConversionReady != 0);
+  uint8_t dataReady = (sensorConfig.ConversionReady != 0);
+
   if (dataReady) {
     opt3001_info = opt3001.readResult();
   }
-
   return dataReady;
 }
 
@@ -399,9 +398,8 @@ static uint8_t read_as7262_sensor()
 {
   extern Adafruit_AS726x ams;
   extern as7262_info_t as7262_info;
-  uint8_t dataReady;
 
-  dataReady = ams.dataReady();
+  uint8_t dataReady = ams.dataReady();
   if(dataReady) {
     ams.readCalibratedValues(as7262_info.calibratedValues);
     ams.readRawValues(as7262_info.rawValues);
@@ -460,8 +458,6 @@ static void display_bars()
 static void display_gain()
 {
   extern as7262_info_t as7262_info;
-
-  
 
   tft.fillScreen(ST7735_BLACK);
   // Display the "Gain" sttring in TFT
@@ -522,7 +518,7 @@ static void display_lux()
   extern OPT3001 opt3001_info;
 
   tft.fillScreen(ST7735_BLACK);
-  // Display the "Gain" sttring in TFT
+  // Display the "Lux" sttring in TFT
   tft.setTextSize(3);
   tft.setCursor(0,0);
   tft.setTextColor(ST7735_WHITE, ST7735_BLACK);
@@ -717,8 +713,7 @@ static void act_gain_down()
 
 static void act_spectrum_enter()
 {
-  uint8_t freshData;
-  freshData = read_as7262_sensor();
+  uint8_t freshData = read_as7262_sensor();
   display_bars();
   if(!freshData)
     delay(SHORT_DELAY);
@@ -728,11 +723,8 @@ static void act_spectrum_enter()
 
 static void act_lux_enter()
 {
-  uint8_t freshData;
-  freshData = read_opt3001_sensor();
+  act_idle();
   display_lux();
-  if(!freshData)
-    delay(SHORT_DELAY);
 }
 
 /* ************************************************************************** */ 
