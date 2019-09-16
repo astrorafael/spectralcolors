@@ -164,6 +164,15 @@ So, the built-in LED becomes unusable after miniTFTWing initialization
 #define MAGENTA 0xF81F
 #define PINK    0xF8FF
 
+// strings to display on TFT and send to BLE
+// It is not worth to place these strings in Flash
+const char* GainTable[] = {
+    "1",
+    "3.7",
+    "16",
+    "64"
+  };
+
 /* ************************************************************************** */ 
 /*                        CUSTOM CLASES & DATA TYPES                          */
 /* ************************************************************************** */ 
@@ -416,14 +425,7 @@ static void display_gain()
 {
   extern sensor_info_t sensor_info;
 
-  // strings to display on TFT
-  // It is not worth to place these strings in Flash
-  static const char* gain_table[] = {
-    "1x",
-    "3.7x",
-    "16x",
-    "64x"
-  };
+  
 
   tft.fillScreen(ST7735_BLACK);
   // Display the "Gain" sttring in TFT
@@ -434,7 +436,8 @@ static void display_gain()
   // Display the gain value string in TFT
   tft.setCursor(tft.height()/3, tft.width()/3);
   tft.setTextColor(ST7735_YELLOW, ST7735_BLACK);
-  tft.print(gain_table[sensor_info.gain]);
+  tft.print(GainTable[sensor_info.gain]);
+  tft.print('x');
   delay(SHORT_DELAY);
 }
 
@@ -482,20 +485,30 @@ static void send_bluetooth()
 {
   extern sensor_info_t sensor_info;
   extern Adafruit_BluefruitLE_SPI ble;
+  extern const char* GainTable[];
   static unsigned long seq = 0;
   String line;
  
-  // Sequence number and relative timepsamp
-  line += String(seq++);  line += String(';');
-  line += String(millis()); line += String(';');
+  // Start JSON sequence
+  line += String('[');
+  // Sequence number
+  line += String(seq++);  line += String(',');
+  // Relative timestamp
+  line += String(millis()); line += String(',');
+  // Exposure time in milliseconds
+  line += String(sensor_info.exposure*EXPOSURE_UNIT,1); line += String(',');
+  // Gain
+  line += String(GainTable[sensor_info.gain]); line += String(',');
+  // Temperature
+  line += String(sensor_info.temperature); line += String(',');
 
   // Calibrated values
   for (int i=0; i< 5; i++) {
       line += String(sensor_info.calibratedValues[i], 4); 
-      line += String(';');
+      line += String(',');
   }
   line += String(sensor_info.calibratedValues[5], 4); 
-  line += String('\n');
+  line += String("]\n"); // End JSON sequence
   ble.print(line.c_str());
 }
 
