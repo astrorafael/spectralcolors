@@ -285,7 +285,7 @@ static menu_action_t get_action(uint8_t state, uint8_t event)
     { act_idle,           act_idle,           act_idle,               act_spectrum_idle,   act_lux_idle       }, // GUI_NO_EVENT
     { act_baklight_up,    act_gain_up,        act_exposure_up,        act_idle,            act_idle           }, // GUI_KEY_A_PRESSED
     { act_baklight_down,  act_gain_down,      act_exposure_down,      act_idle,            act_idle           }, // GUI_KEY_B_PRESSED
-    { act_idle,           act_idle,           act_idle,               act_idle,            act_idle           }, // GUI_JOY_PRESSED
+    { act_spectrum_enter, act_spectrum_enter, act_spectrum_enter,     act_spectrum_enter,  act_spectrum_enter           }, // GUI_JOY_PRESSED
     { act_baklight_up,    act_gain_up,        act_exposure_up,        act_idle,            act_idle           }, // GUI_JOY_UP
     { act_baklight_down,  act_gain_down,      act_exposure_down,      act_idle,            act_idle           }, // GUI_JOY_DOWN
     { act_lux_enter,      act_baklight_enter, act_gain_enter,         act_exposure_enter,  act_spectrum_enter }, // GUI_JOY_LEFT
@@ -307,7 +307,7 @@ static uint8_t get_next_screen(uint8_t state, uint8_t event)
       { GUI_BAKLIGHT_SCREEN,  GUI_GAIN_SCREEN,     GUI_EXPOSURE_SCREEN,   GUI_SPECTRUM_SCREEN, GUI_LUX_SCREEN }, // GUI_NO_EVENT
       { GUI_BAKLIGHT_SCREEN,  GUI_GAIN_SCREEN,     GUI_EXPOSURE_SCREEN,   GUI_SPECTRUM_SCREEN, GUI_LUX_SCREEN }, // GUI_KEY_A_PRESSED
       { GUI_BAKLIGHT_SCREEN,  GUI_GAIN_SCREEN,     GUI_EXPOSURE_SCREEN,   GUI_SPECTRUM_SCREEN, GUI_LUX_SCREEN }, // GUI_KEY_B_PRESSED
-      { GUI_BAKLIGHT_SCREEN,  GUI_GAIN_SCREEN,     GUI_EXPOSURE_SCREEN,   GUI_SPECTRUM_SCREEN, GUI_LUX_SCREEN }, // GUI_JOY_PRESSED
+      { GUI_SPECTRUM_SCREEN,  GUI_SPECTRUM_SCREEN, GUI_SPECTRUM_SCREEN,   GUI_SPECTRUM_SCREEN, GUI_SPECTRUM_SCREEN }, // GUI_JOY_PRESSED
       { GUI_BAKLIGHT_SCREEN,  GUI_GAIN_SCREEN,     GUI_EXPOSURE_SCREEN,   GUI_SPECTRUM_SCREEN, GUI_LUX_SCREEN }, // GUI_JOY_UP
       { GUI_BAKLIGHT_SCREEN,  GUI_GAIN_SCREEN,     GUI_EXPOSURE_SCREEN,   GUI_SPECTRUM_SCREEN, GUI_LUX_SCREEN }, // GUI_JOY_DOWN
       { GUI_LUX_SCREEN,       GUI_BAKLIGHT_SCREEN, GUI_GAIN_SCREEN,       GUI_EXPOSURE_SCREEN, GUI_SPECTRUM_SCREEN }, // GUI_JOY_LEFT
@@ -412,12 +412,11 @@ static uint8_t read_as7262_sensor()
 
 /* ************************************************************************** */ 
 
-static void display_bars()
+static void display_bars(bool refresh)
 {
   extern as7262_info_t   as7262_info;
   extern Adafruit_ST7735 tft;
   uint16_t barWidth = (tft.width()) / AS726x_NUM_CHANNELS;
-  bool     refresh = false;
 
   // array of predefined bar colors
   // This table is held in Flash memory to save precious RAM
@@ -716,14 +715,17 @@ static void act_gain_down()
 
 static void act_spectrum_enter()
 {
-  act_spectrum_idle();
+  act_idle();
+  display_bars(true);
   delay(SHORT_DELAY);
 }
+
+/* ------------------------------------------------------------------------- */ 
 
 static void act_spectrum_idle()
 {
   act_idle();
-  display_bars();
+  display_bars(false);
 }
 
 /* ------------------------------------------------------------------------- */ 
