@@ -521,12 +521,16 @@ static void display_lux()
 {
   extern OPT3001    opt3001_info;
   extern tft_info_t tft_info;
+  static float prev_lux = 0;
 
-  // Display the exposure value string in TFT
-  tft.setCursor(0, tft.width()/3);
-  tft.setTextColor(ST7735_YELLOW, ST7735_BLACK);
-  tft.print(opt3001_info.lux,2); 
-  delay(SHORT_DELAY);
+  if (opt3001_info.lux != prev_lux) {
+    // refresh display value
+    tft.setCursor(0, tft.width()/3);
+    tft.setTextColor(ST7735_YELLOW, ST7735_BLACK);
+    tft.print(opt3001_info.lux,2); 
+  }
+  prev_lux = opt3001_info.lux;
+  //delay(SHORT_DELAY);
 }
 
 /* ************************************************************************** */ 
