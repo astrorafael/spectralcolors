@@ -269,7 +269,9 @@ static void act_exposure_enter();
 static void act_exposure_up();
 static void act_exposure_down();
 static void act_spectrum_enter();
+static void act_spectrum_idle();
 static void act_lux_enter();
+static void act_lux_idle();
 
 
 // Action to execute as a function of current state and event
@@ -280,7 +282,7 @@ static menu_action_t get_action(uint8_t state, uint8_t event)
   static const menu_action_t menu_action[][5] PROGMEM = {
     // BACKLIGHT SCREEN | GAIN SCREEN      |   EXPOSURE SCREEN    |    SPECTRUM SCREEN   | LUX SCREEN
     //------------------+------------------+----------------------+----------------------+------------
-    { act_idle,           act_idle,           act_idle,               act_spectrum_enter,  act_lux_enter      }, // GUI_NO_EVENT
+    { act_idle,           act_idle,           act_idle,               act_spectrum_idle,   act_lux_idle       }, // GUI_NO_EVENT
     { act_baklight_up,    act_gain_up,        act_exposure_up,        act_idle,            act_idle           }, // GUI_KEY_A_PRESSED
     { act_baklight_down,  act_gain_down,      act_exposure_down,      act_idle,            act_idle           }, // GUI_KEY_B_PRESSED
     { act_idle,           act_idle,           act_idle,               act_idle,            act_idle           }, // GUI_JOY_PRESSED
@@ -458,6 +460,7 @@ static void display_bars()
 static void display_gain()
 {
   extern as7262_info_t as7262_info;
+  extern tft_info_t    tft_info;
 
   tft.fillScreen(ST7735_BLACK);
   // Display the "Gain" sttring in TFT
@@ -497,6 +500,7 @@ static void display_backlight()
 static void display_exposure()
 {
   extern as7262_info_t as7262_info;
+  extern tft_info_t    tft_info;
 
   tft.fillScreen(ST7735_BLACK);
   // Display the "Gain" sttring in TFT
@@ -515,18 +519,13 @@ static void display_exposure()
 
 static void display_lux()
 {
-  extern OPT3001 opt3001_info;
+  extern OPT3001    opt3001_info;
+  extern tft_info_t tft_info;
 
-  tft.fillScreen(ST7735_BLACK);
-  // Display the "Lux" sttring in TFT
-  tft.setTextSize(3);
-  tft.setCursor(0,0);
-  tft.setTextColor(ST7735_WHITE, ST7735_BLACK);
-  tft.print("Lux");
   // Display the exposure value string in TFT
   tft.setCursor(0, tft.width()/3);
   tft.setTextColor(ST7735_YELLOW, ST7735_BLACK);
-  tft.print(opt3001_info.lux,3);
+  tft.print(opt3001_info.lux,2); 
   delay(SHORT_DELAY);
 }
 
@@ -546,7 +545,7 @@ static void send_opt3001_bluetooth()
   // Relative timestamp
   line += String(millis()); line += String(',');
   // OPT 3001 lux readings
-  line += String(opt3001_info.lux, 4);
+  line += String(opt3001_info.lux, 2);
   // End JSON sequence
   line += String("]\n"); 
   ble.print(line.c_str());  // send to BLE
@@ -620,7 +619,7 @@ static void act_exposure_enter()
 
 static void act_exposure_up()
 {
-  extern as7262_info_t as7262_info;
+  extern as7262_info_t   as7262_info;
   extern Adafruit_AS726x ams;
   int exposure = as7262_info.exposure + EXPOSURE_STEPS;
 
@@ -633,7 +632,7 @@ static void act_exposure_up()
 
 static void act_exposure_down()
 {
-  extern as7262_info_t as7262_info;
+  extern as7262_info_t   as7262_info;
   extern Adafruit_AS726x ams;
   int exposure = as7262_info.exposure - EXPOSURE_STEPS;
 
@@ -655,7 +654,7 @@ static void act_baklight_enter()
 static void act_baklight_up()
 {
   extern Adafruit_miniTFTWing ss;
-  extern tft_info_t tft_info;
+  extern tft_info_t           tft_info;
   int   backlight;
 
   backlight = tft_info.backlight + 10;
@@ -669,7 +668,7 @@ static void act_baklight_up()
 static void act_baklight_down()
 {
   extern Adafruit_miniTFTWing ss;
-  extern tft_info_t tft_info;
+  extern tft_info_t           tft_info;
   int    backlight;
 
   backlight = tft_info.backlight - 10;
@@ -689,7 +688,7 @@ static void act_gain_enter()
 
 static void act_gain_up()
 {
-  extern as7262_info_t as7262_info;
+  extern as7262_info_t   as7262_info;
   extern Adafruit_AS726x ams;
 
   as7262_info.gain = (as7262_info.gain + 1) & 0b11;
@@ -701,7 +700,7 @@ static void act_gain_up()
 
 static void act_gain_down()
 {
-  extern as7262_info_t as7262_info;
+  extern as7262_info_t   as7262_info;
   extern Adafruit_AS726x ams;
 
   as7262_info.gain = (as7262_info.gain - 1) & 0b11;
@@ -718,14 +717,41 @@ static void act_spectrum_enter()
   delay(SHORT_DELAY);
 }
 
+static void act_spectrum_idle()
+{
+  act_idle();
+  display_bars();
+}
+
+/* ------------------------------------------------------------------------- */ 
+
+static void act_lux_idle()
+{
+  act_idle();
+  display_lux();
+}
+
 /* ------------------------------------------------------------------------- */ 
 
 static void act_lux_enter()
 {
-  act_idle();
-  display_lux();
-  delay(SHORT_DELAY);
+  
+  extern tft_info_t           tft_info;
+
+  tft.fillScreen(ST7735_BLACK);
+  tft.setTextSize(3);
+  tft.setCursor(0,0);
+  tft.setTextColor(ST7735_WHITE, ST7735_BLACK);
+  tft.print("Lux");
+
+  act_lux_idle();
 }
+
+/* ------------------------------------------------------------------------- */ 
+
+
+/* ------------------------------------------------------------------------- */ 
+
 
 /* ************************************************************************** */ 
 /*                              SETUP FUNCTIONS                              */
@@ -735,7 +761,7 @@ static void setup_ble()
 {
   extern Adafruit_BluefruitLE_SPI ble;
 
-  Serial.print(F("[I] Bluefruit SPI ... "));
+  Serial.print(F("Bluefruit SPI... "));
   
   if ( !ble.begin(VERBOSE_MODE) ) {
     error(F("Couldn't find Bluefruit!"));
@@ -765,7 +791,7 @@ static void setup_as7262()
   extern as7262_info_t as7262_info;
   extern Adafruit_AS726x ams;
  
-  Serial.print(F("[I] AS7262 ... "));
+  Serial.print(F("AS7262... "));
   // finds the 6 channel chip
   if(!ams.begin()){
     error(F("could not connect to AS7262!"));
@@ -787,7 +813,7 @@ static void setup_tft()
   extern Adafruit_ST7735     tft;
   extern tft_info_t          tft_info;
 
-  Serial.print(F("[I] SeeSaw ... "));
+  Serial.print(F("SeeSaw... "));
   // acknowledges the Seesaw chip before sending commands to the TFT display
   if (!ss.begin()) {
     error(F("seesaw couldn't be found!"));
@@ -802,7 +828,7 @@ static void setup_tft()
   ss.setBacklight(TFTWING_BACKLIGHT_ON/2);  // turn on the backlight
   tft_info.backlight = 50;
   //ss.setBacklightFreq(10);  // turn on the backlight
-  Serial.print(F("[I] miniTFT ... "));
+  Serial.print(F("miniTFT... "));
   tft.initR(INITR_MINI160x80);   // initialize a ST7735S chip, mini display
   tft.setRotation(3);            
   tft.fillScreen(ST7735_BLACK);
@@ -815,7 +841,7 @@ static void setup_opt3001()
 {
   extern ClosedCube_OPT3001 opt3001;
 
-  Serial.print(F("[I] OPT3001 ... "));
+  Serial.print(F("OPT3001... "));
   opt3001.begin(OPT3001_ADDRESS);
 
   OPT3001_Config config;
@@ -846,12 +872,13 @@ void setup()
   setup_as7262();
   setup_opt3001();
   setup_tft(); 
+  act_lux_enter();
 }
 
 
 void loop() 
 {
-  static uint8_t  screen = GUI_GAIN_SCREEN; // The current screen
+  static uint8_t  screen = GUI_LUX_SCREEN; // The current screen
   menu_action_t   action;
   uint8_t         event;
  
