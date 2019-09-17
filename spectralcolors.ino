@@ -716,8 +716,7 @@ static void act_gain_down()
 
 static void act_spectrum_enter()
 {
-  act_idle();
-  display_bars();
+  act_spectrum_idle();
   delay(SHORT_DELAY);
 }
 
