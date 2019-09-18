@@ -285,7 +285,7 @@ static menu_action_t get_action(uint8_t state, uint8_t event)
     { act_idle,           act_idle,           act_idle,               act_spectrum_idle,   act_lux_idle       }, // GUI_NO_EVENT
     { act_baklight_up,    act_gain_up,        act_exposure_up,        act_idle,            act_idle           }, // GUI_KEY_A_PRESSED
     { act_baklight_down,  act_gain_down,      act_exposure_down,      act_idle,            act_idle           }, // GUI_KEY_B_PRESSED
-    { act_spectrum_enter, act_spectrum_enter, act_spectrum_enter,     act_spectrum_enter,  act_spectrum_enter           }, // GUI_JOY_PRESSED
+    { act_spectrum_enter, act_spectrum_enter, act_spectrum_enter,     act_spectrum_enter,  act_spectrum_enter }, // GUI_JOY_PRESSED
     { act_baklight_up,    act_gain_up,        act_exposure_up,        act_idle,            act_idle           }, // GUI_JOY_UP
     { act_baklight_down,  act_gain_down,      act_exposure_down,      act_idle,            act_idle           }, // GUI_JOY_DOWN
     { act_lux_enter,      act_baklight_enter, act_gain_enter,         act_exposure_enter,  act_spectrum_enter }, // GUI_JOY_LEFT
