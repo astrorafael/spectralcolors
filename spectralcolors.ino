@@ -194,7 +194,9 @@ So, the built-in LED becomes unusable after miniTFTWing initialization
 // Short delay in screens (milliseconds)
 #define SHORT_DELAY 200
 
-
+// Enable Tx readings through Serial port
+#define CMD_ENABLE_SERIAL  'x'
+#define CMD_DISABLE_SERIAL 'z'
 
 // strings to display on TFT and send to BLE
 // It is not worth to place these strings in Flash
@@ -258,7 +260,10 @@ OPT3001_Config config;
 // Message sequence numbers for AS7262 and OPT3001 data
 unsigned long seqOPT;
 unsigned long seqAS;
- 
+
+// enable readings to serial port 
+bool toSerial = false;
+
 /* ************************************************************************** */ 
 /*                      GUI STATE MACHINE DECLARATIONS                        */
 /* ************************************************************************** */ 
@@ -618,23 +623,33 @@ static void format_as7262_msg(String& line)
 static void act_idle()
 {
   extern Adafruit_BluefruitLE_SPI ble;
+  extern byte toSerial;
+
+  if (Serial.available() > 0) {
+    // read the incoming byte:
+    unsigned char cmd = Serial.read();
+    if (cmd == CMD_ENABLE_SERIAL)
+      toSerial = true;
+    else if (cmd == CMD_DISABLE_SERIAL)
+      toSerial = false;
+  }
 
   if (read_as7262_sensor()) {
     String line;
     format_as7262_msg(line);
-    if (ble.isConnected()) {
+    if (ble.isConnected()) 
       ble.print(line.c_str());  // send to BLE
-    }
-    Serial.print(line);
+    if(toSerial) 
+      Serial.print(line);
   }
 
   if (read_opt3001_sensor()) {
     String line;
     format_opt3001_msg(line);
-    if (ble.isConnected()) {
+    if (ble.isConnected())
       ble.print(line.c_str());  // send to BLE
-    }
-    Serial.print(line);
+    if(toSerial) 
+      Serial.print(line);
   }
 }
 
