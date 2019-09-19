@@ -175,7 +175,7 @@ static uint8_t read_opt3001_sensor()
 
 static void format_message(String& line)
 {
-  extern unsigned long seq;
+  extern unsigned long   seq;
   extern OPT3001 opt3001_info;
 
   // Start JSON sequence
@@ -262,7 +262,17 @@ void setup()
 }
 
 
+
 void loop() 
 {
-  
+  extern Adafruit_BluefruitLE_SPI ble;
+
+  if (read_opt3001_sensor()) {
+     String line;
+     format_message(line);
+    if (ble.isConnected()) {
+      ble.print(line.c_str());    // send to BLE
+    }
+    Serial.print(line);
+  }
 }
