@@ -111,6 +111,10 @@ So, the built-in LED becomes unusable after miniTFTWing initialization
 /*                                DEFINEs SECTION                             */
 /* ************************************************************************** */ 
 
+#ifndef GIT_VERSION
+#define GIT_VERSION "0.1.0" // For downloads without git
+#endif
+
 // OPT 3001 Address (0x45 by default)
 #define OPT3001_ADDRESS 0x45
 
