@@ -623,6 +623,7 @@ static void act_idle()
     if (ble.isConnected()) {
       ble.print(line.c_str());  // send to BLE
     }
+    //Serial.print(line);
   }
 
   if (read_opt3001_sensor()) {
@@ -631,6 +632,7 @@ static void act_idle()
     if (ble.isConnected()) {
       ble.print(line.c_str());  // send to BLE
     }
+    //Serial.print(line);
   }
 }
 
