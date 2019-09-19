@@ -254,6 +254,10 @@ ClosedCube_OPT3001 opt3001;
 // OPT3001 read sensor data
 OPT3001 opt3001_info;
 
+// Message sequence numbers for AS7262 and OPT3001 data
+unsigned long seqOPT;
+unsigned long seqAS;
+ 
 /* ************************************************************************** */ 
 /*                      GUI STATE MACHINE DECLARATIONS                        */
 /* ************************************************************************** */ 
@@ -558,41 +562,35 @@ static void display_lux()
 
 /* ************************************************************************** */ 
 
-static void send_opt3001_bluetooth()
+static void format_opt3001_msg(String& line)
 {
-  extern Adafruit_BluefruitLE_SPI ble;
-
-  static unsigned long seq = 0; // Tx sequence number
-  String line;
+  extern OPT3001       opt3001_info;
+  extern unsigned long seqOPT;
  
   // Start JSON sequence
   line += String("['O',");
   // Sequence number
-  line += String(seq++);  line += String(',');
+  line += String(seqOPT++); line += String(',');
   // Relative timestamp
   line += String(millis()); line += String(',');
   // OPT 3001 lux readings
   line += String(opt3001_info.lux, 2);
   // End JSON sequence
   line += String("]\n"); 
-  ble.print(line.c_str());  // send to BLE
 }
 
 /* ************************************************************************** */ 
 
-static void send_as7262_bluetooth()
+static void format_as7262_msg(String& line)
 {
   extern as7262_info_t as7262_info;
-  extern Adafruit_BluefruitLE_SPI ble;
-  extern const char* GainTable[];
-
-  static unsigned long seq = 0; // Tx sequence number
-  String line;
+  extern unsigned long seqAS; // Tx sequence number
+  extern const char*   GainTable[];
  
    // Start JSON sequence
   line += String("['A',");
   // Sequence number
-  line += String(seq++);  line += String(',');
+  line += String(seqAS++);  line += String(',');
   // Relative timestamp
   line += String(millis()); line += String(',');
   // AS7262 Exposure time in milliseconds
@@ -609,7 +607,6 @@ static void send_as7262_bluetooth()
   line += String(as7262_info.calibratedValues[5], 4); 
   // End JSON sequence
   line += String("]\n"); 
-  ble.print(line.c_str());  // send to BLE
 }
 
 /* ************************************************************************** */ 
@@ -621,16 +618,18 @@ static void act_idle()
   extern Adafruit_BluefruitLE_SPI ble;
 
   if (read_as7262_sensor()) {
-    //Serial.print('+');
+    String line;
+    format_as7262_msg(line);
     if (ble.isConnected()) {
-      send_as7262_bluetooth();
+      ble.print(line.c_str());  // send to BLE
     }
   }
 
   if (read_opt3001_sensor()) {
-    //Serial.print('+');
+    String line;
+    format_opt3001_msg(line);
     if (ble.isConnected()) {
-      send_opt3001_bluetooth();
+      ble.print(line.c_str());  // send to BLE
     }
   }
 }
