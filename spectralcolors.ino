@@ -57,6 +57,19 @@
               Pwr  |   GND     <====> GND
                    \
 
+              Arduino Nano        OPT3001 Sensor
+              ============        ===============
+
+                    /
+                   |  A4 (SDA)  -----> SDA 
+              I2C  |  A5 (SCL)  -----> SCL 
+                   \
+
+                   /
+                   |   3.3V    <====> VDD 
+              Pwr  |   GND     <====> GND
+                   \
+
               Arduino Nano        miniTFTWing
               ============        ===========
                    /
@@ -67,8 +80,8 @@
                    \
 
                    /
-                   |  A4 (SDA)  -----> SDA (+10k pullup)
-              I2C  |  A5 (SCL)  -----> SCL (+10k pullup)
+                   |  A4 (SDA)  -----> SDA
+              I2C  |  A5 (SCL)  -----> SCL
                    \
 
                    /
@@ -86,8 +99,6 @@ So, the built-in LED becomes unusable after miniTFTWing initialization
 /* ************************************************************************** */ 
 /*                           INCLUDE HEADERS SECTION                          */
 /* ************************************************************************** */ 
-
-#include <avr/sleep.h>
 
 // Support for the Git version tags
 #include "git-version.h"
