@@ -142,6 +142,11 @@ So, the built-in LED becomes unusable after miniTFTWing initialization
 #define BLUEFRUIT_SPI_RST              4    // Optional but recommended, set to -1 if unused
 #define VERBOSE_MODE                   false  // If set to 'true' enables debug output
 
+// more BLE module stuff
+#define FACTORYRESET_ENABLE         0
+#define MINIMUM_FIRMWARE_VERSION    "0.6.6"
+#define MODE_LED_BEHAVIOUR          "MODE"
+
 // ---------------------------------------------------------
 // Define which Arduino nano pins will control the TFT Reset, 
 // SPI Chip Select (CS) and SPI Data/Command DC
@@ -150,24 +155,6 @@ So, the built-in LED becomes unusable after miniTFTWing initialization
 #define TFT_RST -1  // miniTFTwing uses the seesaw chip for resetting to save a pin
 #define TFT_CS   5 // Arduino Nano D5 pin
 #define TFT_DC   6 // Arduini Nano D6 pin
-
-// BLE module stuff
-#define FACTORYRESET_ENABLE         0
-#define MINIMUM_FIRMWARE_VERSION    "0.6.6"
-#define MODE_LED_BEHAVIOUR          "MODE"
-
-
-// Exposure time step in milliseconds
-#define EXPOSURE_UNIT 2.8
-
-// steps in a single button up/down click
-#define EXPOSURE_STEPS 20 
-
-// maximun value expected fro the AS7262 chip
-#define SENSOR_MAX 5000
-
-// Short delay in screens (milliseconds)
-#define SHORT_DELAY 200
 
 // -----------------------------------------
 // Some predefined colors for the 16 bit TFT
@@ -186,6 +173,28 @@ So, the built-in LED becomes unusable after miniTFTWing initialization
 #define BLUE    0x001F
 #define MAGENTA 0xF81F
 #define PINK    0xF8FF
+
+// ---------------------
+// AS7262 default values
+// ---------------------
+
+// Exposure time step in milliseconds
+#define EXPOSURE_UNIT 2.8
+
+// maximun value expected fro the AS7262 chip
+#define SENSOR_MAX 5000
+
+// ---------------
+// Other constants
+// ---------------
+
+// steps in a single button up/down click
+#define EXPOSURE_STEPS 20 
+
+// Short delay in screens (milliseconds)
+#define SHORT_DELAY 200
+
+
 
 // strings to display on TFT and send to BLE
 // It is not worth to place these strings in Flash
