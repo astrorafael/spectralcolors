@@ -252,7 +252,8 @@ Adafruit_BluefruitLE_SPI ble(BLUEFRUIT_SPI_CS,
 ClosedCube_OPT3001 opt3001;
 
 // OPT3001 read sensor data
-OPT3001 opt3001_info;
+OPT3001        opt3001_info;
+OPT3001_Config config;
 
 // Message sequence numbers for AS7262 and OPT3001 data
 unsigned long seqOPT;
@@ -487,8 +488,7 @@ static void display_bars(bool refresh)
 static void display_gain()
 {
   extern as7262_info_t as7262_info;
-  extern tft_info_t    tft_info;
-
+ 
   tft.fillScreen(ST7735_BLACK);
   // Display the "Gain" sttring in TFT
   tft.setTextSize(3); // 3x the original font
@@ -573,6 +573,8 @@ static void format_opt3001_msg(String& line)
   line += String(seqOPT++); line += String(',');
   // Relative timestamp
   line += String(millis()); line += String(',');
+  // Exposure time in milliseconds (fixed to 800)
+  line += String("800"); line += String(',');
   // OPT 3001 lux readings
   line += String(opt3001_info.lux, 2);
   // End JSON sequence
@@ -623,7 +625,7 @@ static void act_idle()
     if (ble.isConnected()) {
       ble.print(line.c_str());  // send to BLE
     }
-    //Serial.print(line);
+    Serial.print(line);
   }
 
   if (read_opt3001_sensor()) {
@@ -632,7 +634,7 @@ static void act_idle()
     if (ble.isConnected()) {
       ble.print(line.c_str());  // send to BLE
     }
-    //Serial.print(line);
+    Serial.print(line);
   }
 }
 
@@ -870,16 +872,15 @@ static void setup_tft()
 static void setup_opt3001()
 {
   extern ClosedCube_OPT3001 opt3001;
+  extern OPT3001_Config config;
 
   Serial.print(F("OPT3001... "));
   opt3001.begin(OPT3001_ADDRESS);
 
-  OPT3001_Config config;
-  
   config.RangeNumber               = B1100;  // Automatic full-scale
   config.ConvertionTime            = B1;     // 800 ms
   config.Latch                     = B1;     // ???
-  config.ModeOfConversionOperation = B11;    // Continuou operation
+  config.ModeOfConversionOperation = B11;    // Continuous operation
 
   OPT3001_ErrorCode errorConfig = opt3001.writeConfig(config);
   if (errorConfig != NO_ERROR) {
