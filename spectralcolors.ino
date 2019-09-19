@@ -24,51 +24,6 @@
 /* ************************************************************************** */ 
 
 /*
-              Arduino Nano        BLE SPI Friend Module
-              ============        ======================
-
-                   /
-                   | D11 (MOSI) -----> MOSI
-                   | D12 (MISO) -----> MISO
-              SPI <  D13 (SCK)  -----> SCLK
-                   |     D8     -----> CS
-                   \
-                   /
-                   |     D7     -----> IRQ
-                   |     D4     -----> RESET
-                   \
-
-                   /
-                   |   3.3V    <====> 3.3V 
-              Pwr  |   GND     <====> GND
-                   \
-
-
-              Arduino Nano        AS7262 Spectral Sensor
-              ============        ======================
-
-                    /
-                   |  A4 (SDA)  -----> SDA 
-              I2C  |  A5 (SCL)  -----> SCL 
-                   \
-
-                   /
-                   |   3.3V    <====> VIN 
-              Pwr  |   GND     <====> GND
-                   \
-
-              Arduino Nano        OPT3001 Sensor
-              ============        ===============
-
-                    /
-                   |  A4 (SDA)  -----> SDA 
-              I2C  |  A5 (SCL)  -----> SCL 
-                   \
-
-                   /
-                   |   3.3V    <====> VDD 
-              Pwr  |   GND     <====> GND
-                   \
 
               Arduino Nano        miniTFTWing
               ============        ===========
@@ -103,20 +58,10 @@ So, the built-in LED becomes unusable after miniTFTWing initialization
 // Support for the Git version tags
 #include "git-version.h"
 
-// Adafruit Spectral Sensor library
-#include <Adafruit_AS726x.h>
-
 // Adafruit Graphics libraries
 #include <Adafruit_GFX.h>    		   // Core graphics library
 #include <Adafruit_ST7735.h> 		   // Hardware-specific library
 #include <Adafruit_miniTFTWing.h>  // Seesaw library for the miniTFT Wing display
-
-// Adafruit Bluetooth libraries
-#include <Adafruit_BLE.h>
-#include <Adafruit_BluefruitLE_SPI.h>
-
-// ClosedCube OPT3001 library
-#include <ClosedCube_OPT3001.h>
 
 /* ************************************************************************** */ 
 /*                                DEFINEs SECTION                             */
@@ -126,26 +71,6 @@ So, the built-in LED becomes unusable after miniTFTWing initialization
 #define GIT_VERSION "0.1.0" // For downloads without git
 #endif
 
-// OPT 3001 Address (0x45 by default)
-#define OPT3001_ADDRESS 0x45
-
-// BLUETOOTH SHARED SPI SETTINGS
-// -----------------------------------------------------------------------------
-// The following macros declare the pins to use for HW and SW SPI communication.
-// SCK, MISO and MOSI should be connected to the HW SPI pins on the Uno when
-// using HW SPI.  This should be used with nRF51822 based Bluefruit LE modules
-// that use SPI (Bluefruit LE SPI Friend).
-// ------------------------------------------------------------------------------
-
-#define BLUEFRUIT_SPI_CS               8
-#define BLUEFRUIT_SPI_IRQ              7
-#define BLUEFRUIT_SPI_RST              4    // Optional but recommended, set to -1 if unused
-#define VERBOSE_MODE                   false  // If set to 'true' enables debug output
-
-// more BLE module stuff
-#define FACTORYRESET_ENABLE         0
-#define MINIMUM_FIRMWARE_VERSION    "0.6.6"
-#define MODE_LED_BEHAVIOUR          "MODE"
 
 // ---------------------------------------------------------
 // Define which Arduino nano pins will control the TFT Reset, 
@@ -174,93 +99,14 @@ So, the built-in LED becomes unusable after miniTFTWing initialization
 #define MAGENTA 0xF81F
 #define PINK    0xF8FF
 
-// ---------------------
-// AS7262 default values
-// ---------------------
-
-// Exposure time step in milliseconds
-#define EXPOSURE_UNIT 2.8
-
-// maximun value expected fro the AS7262 chip
-#define SENSOR_MAX 5000
 
 // ---------------
 // Other constants
 // ---------------
 
-// steps in a single button up/down click
-#define EXPOSURE_STEPS 20 
-
 // Short delay in screens (milliseconds)
 #define SHORT_DELAY 200
 
-
-
-// strings to display on TFT and send to BLE
-// It is not worth to place these strings in Flash
-const char* GainTable[] = {
-    "1",
-    "3.7",
-    "16",
-    "64"
-  };
-
-/* ************************************************************************** */ 
-/*                        CUSTOM CLASES & DATA TYPES                          */
-/* ************************************************************************** */ 
-
-typedef struct {
-  float    calibratedValues[AS726x_NUM_CHANNELS];
-  uint16_t rawValues[AS726x_NUM_CHANNELS];
-  uint8_t  gain;           // device gain multiplier
-  uint8_t  exposure;       // device integration time in steps of 2.8 ms
-  uint8_t  temperature;    // device internal temperature
-} as7262_info_t;
-
-typedef struct {
-  uint8_t backlight;    // miniTFTWing backlight value in percentage
-} tft_info_t;
-
-// Menu action function pointer as a typedef
-typedef void (*menu_action_t)(void);
-
-/* ************************************************************************** */ 
-/*                          GLOBAL VARIABLES SECTION                          */
-/* ************************************************************************** */ 
-
-// The Adafruit SeeSaw chip that controls the TFT by I2C
-Adafruit_miniTFTWing ss;
-
-// The Adafruit TFT display object based on ST7735
-Adafruit_ST7735 tft = Adafruit_ST7735(TFT_CS, TFT_DC, TFT_RST);
-
-//create the 6 channel spectral sensor object
-Adafruit_AS726x ams;
-
-// buffer to hold raw & calibrated values as well as exposure time and gain
-as7262_info_t as7262_info;
-
-// buffer to hold raw & calibrated values as well as exposure time and gain
-tft_info_t tft_info;
-
-/* Hardware SPI, using SCK/MOSI/MISO hardware SPI pins and then user selected CS/IRQ/RST */
-Adafruit_BluefruitLE_SPI ble(BLUEFRUIT_SPI_CS, 
-                            BLUEFRUIT_SPI_IRQ, 
-                            BLUEFRUIT_SPI_RST);
-
-// I2C OPT3001 sensor object
-ClosedCube_OPT3001 opt3001;
-
-// OPT3001 read sensor data
-OPT3001 opt3001_info;
-
-// Message sequence numbers for AS7262 and OPT3001 data
-unsigned long seqOPT;
-unsigned long seqAS;
- 
-/* ************************************************************************** */ 
-/*                      GUI STATE MACHINE DECLARATIONS                        */
-/* ************************************************************************** */ 
 
 // Events generated by user
 enum gui_events {
@@ -274,84 +120,20 @@ enum gui_events {
   GUI_JOY_RIGHT
 };
 
-// TFT Screens as states
-enum gui_state {
-  GUI_BAKLIGHT_SCREEN     = 0,
-  GUI_GAIN_SCREEN,
-  GUI_EXPOSURE_SCREEN,
-  GUI_SPECTRUM_SCREEN,
-  GUI_LUX_SCREEN
-};
+/* ************************************************************************** */ 
+/*                          GLOBAL VARIABLES SECTION                          */
+/* ************************************************************************** */ 
 
-// --------------------------------------------
-// State Machine Actions (Forward declarations)
-// --------------------------------------------
-static void act_idle();
-static void act_gain_enter();
-static void act_gain_up();
-static void act_gain_down();
-static void act_baklight_enter();
-static void act_baklight_up();
-static void act_baklight_down();
-static void act_exposure_enter();
-static void act_exposure_up();
-static void act_exposure_down();
-static void act_spectrum_enter();
-static void act_spectrum_idle();
-static void act_lux_enter();
-static void act_lux_idle();
+// The Adafruit SeeSaw chip that controls the TFT by I2C
+Adafruit_miniTFTWing ss;
 
+// The Adafruit TFT display object based on ST7735
+Adafruit_ST7735 tft = Adafruit_ST7735(TFT_CS, TFT_DC, TFT_RST);
 
-// Action to execute as a function of current state and event
-// This table is held in Flash memory to save precious RAM
-// Use of PROGMEM and pgm_xxx() functions is necessary
-static menu_action_t get_action(uint8_t state, uint8_t event)
-{
-  static const menu_action_t menu_action[][5] PROGMEM = {
-    // BACKLIGHT SCREEN | GAIN SCREEN      |   EXPOSURE SCREEN    |    SPECTRUM SCREEN   | LUX SCREEN
-    //------------------+------------------+----------------------+----------------------+------------
-    { act_idle,           act_idle,           act_idle,               act_spectrum_idle,   act_lux_idle       }, // GUI_NO_EVENT
-    { act_baklight_up,    act_gain_up,        act_exposure_up,        act_idle,            act_idle           }, // GUI_KEY_A_PRESSED
-    { act_baklight_down,  act_gain_down,      act_exposure_down,      act_idle,            act_idle           }, // GUI_KEY_B_PRESSED
-    { act_spectrum_enter, act_spectrum_enter, act_spectrum_enter,     act_spectrum_enter,  act_spectrum_enter }, // GUI_JOY_PRESSED
-    { act_baklight_up,    act_gain_up,        act_exposure_up,        act_idle,            act_idle           }, // GUI_JOY_UP
-    { act_baklight_down,  act_gain_down,      act_exposure_down,      act_idle,            act_idle           }, // GUI_JOY_DOWN
-    { act_lux_enter,      act_baklight_enter, act_gain_enter,         act_exposure_enter,  act_spectrum_enter }, // GUI_JOY_LEFT
-    { act_gain_enter,     act_exposure_enter, act_spectrum_enter,     act_lux_enter,       act_baklight_enter }  // GUI_JOY_RIGHT
-  };
-  return (menu_action_t) pgm_read_ptr(&menu_action[event][state]);
-}
-
-/* -------------------------------------------------------------------------- */ 
-
-// Next state to proceed as a function of current state and event
-// This table is held in Flash memory to save precious RAM
-// Use of PROGMEM and pgm_xxx() functions is necessary
-static uint8_t get_next_screen(uint8_t state, uint8_t event)
-{
-  static const PROGMEM uint8_t next_screen[][5] = {
-    // BACKLIGHT SCREEN      | GAIN SCREEN      |   EXPOSURE SCREEN    |    SPECTRUM SCREEN   | LUX SCREEN
-    //----------------------+------------------+-----------------------+-----------------------+------------
-      { GUI_BAKLIGHT_SCREEN,  GUI_GAIN_SCREEN,     GUI_EXPOSURE_SCREEN,   GUI_SPECTRUM_SCREEN, GUI_LUX_SCREEN }, // GUI_NO_EVENT
-      { GUI_BAKLIGHT_SCREEN,  GUI_GAIN_SCREEN,     GUI_EXPOSURE_SCREEN,   GUI_SPECTRUM_SCREEN, GUI_LUX_SCREEN }, // GUI_KEY_A_PRESSED
-      { GUI_BAKLIGHT_SCREEN,  GUI_GAIN_SCREEN,     GUI_EXPOSURE_SCREEN,   GUI_SPECTRUM_SCREEN, GUI_LUX_SCREEN }, // GUI_KEY_B_PRESSED
-      { GUI_SPECTRUM_SCREEN,  GUI_SPECTRUM_SCREEN, GUI_SPECTRUM_SCREEN,   GUI_SPECTRUM_SCREEN, GUI_SPECTRUM_SCREEN }, // GUI_JOY_PRESSED
-      { GUI_BAKLIGHT_SCREEN,  GUI_GAIN_SCREEN,     GUI_EXPOSURE_SCREEN,   GUI_SPECTRUM_SCREEN, GUI_LUX_SCREEN }, // GUI_JOY_UP
-      { GUI_BAKLIGHT_SCREEN,  GUI_GAIN_SCREEN,     GUI_EXPOSURE_SCREEN,   GUI_SPECTRUM_SCREEN, GUI_LUX_SCREEN }, // GUI_JOY_DOWN
-      { GUI_LUX_SCREEN,       GUI_BAKLIGHT_SCREEN, GUI_GAIN_SCREEN,       GUI_EXPOSURE_SCREEN, GUI_SPECTRUM_SCREEN }, // GUI_JOY_LEFT
-      { GUI_GAIN_SCREEN,      GUI_EXPOSURE_SCREEN, GUI_SPECTRUM_SCREEN,   GUI_LUX_SCREEN,      GUI_BAKLIGHT_SCREEN }  // GUI_JOY_RIGHT
-    };
-  return pgm_read_byte(&next_screen[event][state]);
-}
 
 /* ************************************************************************** */ 
 /*                            HELPER FUNCTIONS                                */
 /* ************************************************************************** */ 
-
-/* ************************************************************************** */ 
-/*                            HELPER FUNCTIONS                                */
-/* ************************************************************************** */ 
-
 
 // A small helper
 static void error(const __FlashStringHelper* err) 
@@ -408,432 +190,29 @@ static uint8_t read_buttons()
 
 /* ************************************************************************** */ 
 
-static uint8_t read_opt3001_sensor()
-{
-  extern ClosedCube_OPT3001 opt3001;
-  extern OPT3001 opt3001_info;
-
-  OPT3001_Config sensorConfig = opt3001.readConfig();
-  uint8_t dataReady = (sensorConfig.ConversionReady != 0);
-
-  if (dataReady) {
-    opt3001_info = opt3001.readResult();
-  }
-  return dataReady;
-}
-
-/* ************************************************************************** */ 
-
-static uint8_t read_as7262_sensor()
-{
-  extern Adafruit_AS726x ams;
-  extern as7262_info_t as7262_info;
-
-  uint8_t dataReady = ams.dataReady();
-  if(dataReady) {
-    ams.readCalibratedValues(as7262_info.calibratedValues);
-    ams.readRawValues(as7262_info.rawValues);
-    as7262_info.temperature = ams.readTemperature();
-  }
-  return dataReady;
-}
-
-/* ************************************************************************** */ 
-
-static void display_bars(bool refresh)
-{
-  extern as7262_info_t   as7262_info;
-  extern Adafruit_ST7735 tft;
-  uint16_t barWidth = (tft.width()) / AS726x_NUM_CHANNELS;
-
-  // array of predefined bar colors
-  // This table is held in Flash memory to save precious RAM
-  // Use of PROGMEM and pgm_xxx() functions is necessary
-  static const PROGMEM uint16_t colors[AS726x_NUM_CHANNELS] = {
-      MAGENTA,
-      BLUE,
-      GREEN,
-      YELLOW,
-      ORANGE,
-      RED
-  };
-
-  // Display bar buffers, used to minimize redrawings
-  static uint16_t height[AS726x_NUM_CHANNELS][2];
-  static uint8_t  curBuf = 0;                     // current buffer 
-
-
-  // see if we really have to redraw the bars
-  for(int i=0; i<AS726x_NUM_CHANNELS; i++) {
-    height[i][curBuf] = map(as7262_info.calibratedValues[i], 0, SENSOR_MAX, 0, tft.height());
-    if (height[i][curBuf] != height[i][curBuf  ^ 0x01]) {
-      refresh = true;
-    }
-  }
-
-  if (refresh) { 
-    for(int i=0; i<AS726x_NUM_CHANNELS; i++) {
-      uint16_t color  = pgm_read_word(&colors[i]);  
-      tft.fillRect(barWidth * i, 0, barWidth, tft.height() - height[i][curBuf], ST7735_BLACK);
-      tft.fillRect(barWidth * i, tft.height() - height[i][curBuf], barWidth, height[i][curBuf], color);
-    }
-  }
-  curBuf ^= 0x01; // switch to the other buffer
-}
-
 /* ************************************************************************** */ 
 
 
-static void display_gain()
+static void display(String header, String line)
 {
-  extern as7262_info_t as7262_info;
-  extern tft_info_t    tft_info;
 
-  tft.fillScreen(ST7735_BLACK);
-  // Display the "Gain" sttring in TFT
-  tft.setTextSize(3); // 3x the original font
-  tft.setCursor(tft.height()/3, 0);
-  tft.setTextColor(ST7735_WHITE, ST7735_BLACK);
-  tft.print("Gain");
-  // Display the gain value string in TFT
-  tft.setCursor(tft.height()/3, tft.width()/3);
-  tft.setTextColor(ST7735_YELLOW, ST7735_BLACK);
-  tft.print(GainTable[as7262_info.gain]);
-  tft.print('x');
-  delay(SHORT_DELAY);
-}
-
-/* ************************************************************************** */ 
-
-static void display_backlight()
-{
-  extern tft_info_t tft_info;
-  
   tft.fillScreen(ST7735_BLACK);
   // Display the "Gain" sttring in TFT
   tft.setTextSize(3); // 3x the original font
   tft.setCursor(0, 0);
   tft.setTextColor(ST7735_WHITE, ST7735_BLACK);
-  tft.print("Baklight");
+  tft.print(header.c_str());
   // Display the gain value string in TFT
   tft.setCursor(tft.height()/3, tft.width()/3);
   tft.setTextColor(ST7735_YELLOW, ST7735_BLACK);
-  tft.print(tft_info.backlight); tft.print(" %");
+  tft.print(line.c_str());
   delay(SHORT_DELAY);
 }
-
-/* ************************************************************************** */ 
-
-static void display_exposure()
-{
-  extern as7262_info_t as7262_info;
-  extern tft_info_t    tft_info;
-
-  tft.fillScreen(ST7735_BLACK);
-  // Display the "Gain" sttring in TFT
-  tft.setTextSize(3);
-  tft.setCursor(0,0);
-  tft.setTextColor(ST7735_WHITE, ST7735_BLACK);
-  tft.print("Exposure");
-  // Display the exposure value string in TFT
-  tft.setCursor(0, tft.width()/3);
-  tft.setTextColor(ST7735_YELLOW, ST7735_BLACK);
-  tft.print(as7262_info.exposure*EXPOSURE_UNIT,1); tft.print(" ms");
-  delay(SHORT_DELAY);
-}
-
-/* ************************************************************************** */ 
-
-static void display_lux()
-{
-  extern OPT3001    opt3001_info;
-  extern tft_info_t tft_info;
-  static float prev_lux = 0;
-
-  if (opt3001_info.lux != prev_lux) {
-    // refresh display value
-    tft.setCursor(0, tft.width()/3);
-    tft.setTextColor(ST7735_YELLOW, ST7735_BLACK);
-    tft.print(opt3001_info.lux,2); 
-  }
-  prev_lux = opt3001_info.lux;
-  //delay(SHORT_DELAY);
-}
-
-/* ************************************************************************** */ 
-
-static void format_opt3001_msg(String& line)
-{
-  extern OPT3001       opt3001_info;
-  extern unsigned long seqOPT;
- 
-  // Start JSON sequence
-  line += String("['O',");
-  // Sequence number
-  line += String(seqOPT++); line += String(',');
-  // Relative timestamp
-  line += String(millis()); line += String(',');
-  // OPT 3001 lux readings
-  line += String(opt3001_info.lux, 2);
-  // End JSON sequence
-  line += String("]\n"); 
-}
-
-/* ************************************************************************** */ 
-
-static void format_as7262_msg(String& line)
-{
-  extern as7262_info_t as7262_info;
-  extern unsigned long seqAS; // Tx sequence number
-  extern const char*   GainTable[];
- 
-   // Start JSON sequence
-  line += String("['A',");
-  // Sequence number
-  line += String(seqAS++);  line += String(',');
-  // Relative timestamp
-  line += String(millis()); line += String(',');
-  // AS7262 Exposure time in milliseconds
-  line += String(as7262_info.exposure*EXPOSURE_UNIT,1); line += String(',');
-  // AS7262 Gain
-  line += String(GainTable[as7262_info.gain]); line += String(',');
-  // AS7262 Temperature
-  line += String(as7262_info.temperature); line += String(',');
-  // AS7262 calibrated values
-  for (int i=0; i< 5; i++) {
-      line += String(as7262_info.calibratedValues[i], 4); 
-      line += String(',');
-  }
-  line += String(as7262_info.calibratedValues[5], 4); 
-  // End JSON sequence
-  line += String("]\n"); 
-}
-
-/* ************************************************************************** */ 
-/*                      STATE MACHINE ACTION FUNCTIONS                        */
-/* ************************************************************************** */ 
-
-static void act_idle()
-{
-  extern Adafruit_BluefruitLE_SPI ble;
-
-  if (read_as7262_sensor()) {
-    String line;
-    format_as7262_msg(line);
-    if (ble.isConnected()) {
-      ble.print(line.c_str());  // send to BLE
-    }
-    //Serial.print(line);
-  }
-
-  if (read_opt3001_sensor()) {
-    String line;
-    format_opt3001_msg(line);
-    if (ble.isConnected()) {
-      ble.print(line.c_str());  // send to BLE
-    }
-    //Serial.print(line);
-  }
-}
-
-/* ------------------------------------------------------------------------- */ 
-
-static void act_exposure_enter()
-{ 
-  display_exposure();
-}
-
-/* ------------------------------------------------------------------------- */ 
-
-static void act_exposure_up()
-{
-  extern as7262_info_t   as7262_info;
-  extern Adafruit_AS726x ams;
-  int exposure = as7262_info.exposure + EXPOSURE_STEPS;
-
-  as7262_info.exposure = constrain(exposure, 1, 255);
-  ams.setIntegrationTime(as7262_info.exposure); 
-  display_exposure();
-}
-
-/* ------------------------------------------------------------------------- */ 
-
-static void act_exposure_down()
-{
-  extern as7262_info_t   as7262_info;
-  extern Adafruit_AS726x ams;
-  int exposure = as7262_info.exposure - EXPOSURE_STEPS;
-
-  as7262_info.exposure = constrain(exposure, 1, 255);
-  ams.setIntegrationTime(as7262_info.exposure); 
-  display_exposure();
-}
-
-
-/* ------------------------------------------------------------------------- */ 
-
-static void act_baklight_enter()
-{ 
-  display_backlight();
-}
-
-/* ------------------------------------------------------------------------- */ 
-
-static void act_baklight_up()
-{
-  extern Adafruit_miniTFTWing ss;
-  extern tft_info_t           tft_info;
-  int   backlight;
-
-  backlight = tft_info.backlight + 10;
-  tft_info.backlight = constrain(backlight, 10, 100);
-  ss.setBacklight(65535-(tft_info.backlight*65535)/100); 
-  display_backlight();
-}
-
-/* ------------------------------------------------------------------------- */ 
-
-static void act_baklight_down()
-{
-  extern Adafruit_miniTFTWing ss;
-  extern tft_info_t           tft_info;
-  int    backlight;
-
-  backlight = tft_info.backlight - 10;
-  tft_info.backlight = constrain(backlight, 10, 100);
-  ss.setBacklight(65535-(tft_info.backlight*65535)/100); 
-  display_backlight();
-}
-
-/* ------------------------------------------------------------------------- */ 
-
-static void act_gain_enter()
-{ 
-  display_gain();
-}
-
-/* ------------------------------------------------------------------------- */ 
-
-static void act_gain_up()
-{
-  extern as7262_info_t   as7262_info;
-  extern Adafruit_AS726x ams;
-
-  as7262_info.gain = (as7262_info.gain + 1) & 0b11;
-  ams.setGain(as7262_info.gain); 
-  display_gain();
-}
-
-/* ------------------------------------------------------------------------- */ 
-
-static void act_gain_down()
-{
-  extern as7262_info_t   as7262_info;
-  extern Adafruit_AS726x ams;
-
-  as7262_info.gain = (as7262_info.gain - 1) & 0b11;
-  ams.setGain(as7262_info.gain); 
-  display_gain();
-}
-
-/* ------------------------------------------------------------------------- */ 
-
-static void act_spectrum_enter()
-{
-  act_idle();
-  display_bars(true);
-  delay(SHORT_DELAY);
-}
-
-/* ------------------------------------------------------------------------- */ 
-
-static void act_spectrum_idle()
-{
-  act_idle();
-  display_bars(false);
-}
-
-/* ------------------------------------------------------------------------- */ 
-
-static void act_lux_idle()
-{
-  act_idle();
-  display_lux();
-}
-
-/* ------------------------------------------------------------------------- */ 
-
-static void act_lux_enter()
-{
-  
-  extern tft_info_t           tft_info;
-
-  tft.fillScreen(ST7735_BLACK);
-  tft.setTextSize(3);
-  tft.setCursor(0,0);
-  tft.setTextColor(ST7735_WHITE, ST7735_BLACK);
-  tft.print("Lux");
-
-  act_lux_idle();
-}
-
-/* ------------------------------------------------------------------------- */ 
-
-
-/* ------------------------------------------------------------------------- */ 
 
 
 /* ************************************************************************** */ 
 /*                              SETUP FUNCTIONS                              */
 /* ************************************************************************** */ 
-
-static void setup_ble()
-{
-  extern Adafruit_BluefruitLE_SPI ble;
-
-  Serial.print(F("Bluefruit SPI... "));
-  
-  if ( !ble.begin(VERBOSE_MODE) ) {
-    error(F("Couldn't find Bluefruit!"));
-  }
-
-  if ( FACTORYRESET_ENABLE && ! ble.factoryReset() ) {
-    /* Perform a factory reset to make sure everything is in a known state */
-    error(F("Couldn't factory reset Bluefruit!"));
-  }
-
-  /* Disable command echo from Bluefruit */
-  ble.echo(false);
-  // LED Activity command is only supported from Fiormware version 0.6.6
-  ble.sendCommandCheckOK("AT+HWModeLED=" MODE_LED_BEHAVIOUR);
-
-  // Set module to DATA mode
-  ble.setMode(BLUEFRUIT_MODE_DATA);
-  Serial.println(F("ok"));
-  //ble.info();
-  //ble.verbose(false);  // debug info is a little annoying after this point!
-}
-
-/* ************************************************************************** */ 
-
-static void setup_as7262()
-{
-  extern as7262_info_t as7262_info;
-  extern Adafruit_AS726x ams;
- 
-  Serial.print(F("AS7262... "));
-  // finds the 6 channel chip
-  if(!ams.begin()){
-    error(F("could not connect to AS7262!"));
-  }
-  // as initialized by the AS7262 library
-  // Note that in MODE 2, the exposure time is actually doubled
-  as7262_info.gain     = GAIN_64X;
-  as7262_info.exposure = 50;
-  // continuous conversion time is already done by default in the ams driver
-  //ams.setConversionType(MODE_2);
-  Serial.println(F("ok"));
-}
 
 /* ************************************************************************** */ 
 
@@ -841,7 +220,6 @@ static void setup_tft()
 {
   extern Adafruit_miniTFTWing ss;
   extern Adafruit_ST7735     tft;
-  extern tft_info_t          tft_info;
 
   Serial.print(F("SeeSaw... "));
   // acknowledges the Seesaw chip before sending commands to the TFT display
@@ -853,38 +231,13 @@ static void setup_tft()
   Serial.print(F(", ver: "));
   Serial.println(ss.getVersion(), HEX); 
  
-
   ss.tftReset();   // reset the display via a seesaw command
   ss.setBacklight(TFTWING_BACKLIGHT_ON/2);  // turn on the backlight
-  tft_info.backlight = 50;
   //ss.setBacklightFreq(10);  // turn on the backlight
   Serial.print(F("miniTFT... "));
   tft.initR(INITR_MINI160x80);   // initialize a ST7735S chip, mini display
   tft.setRotation(3);            
   tft.fillScreen(ST7735_BLACK);
-  Serial.println(F("ok"));
-}
-
-/* ************************************************************************** */ 
-
-static void setup_opt3001()
-{
-  extern ClosedCube_OPT3001 opt3001;
-
-  Serial.print(F("OPT3001... "));
-  opt3001.begin(OPT3001_ADDRESS);
-
-  OPT3001_Config config;
-  
-  config.RangeNumber               = B1100;  // Automatic full-scale
-  config.ConvertionTime            = B1;     // 800 ms
-  config.Latch                     = B1;     // ???
-  config.ModeOfConversionOperation = B11;    // Continuou operation
-
-  OPT3001_ErrorCode errorConfig = opt3001.writeConfig(config);
-  if (errorConfig != NO_ERROR) {
-    error(F("OPT3001 config error!"));
-  }
   Serial.println(F("ok"));
 }
 
@@ -898,23 +251,58 @@ void setup()
   Serial.begin(115200);
   while(!Serial);
   Serial.println(F("Sketch version: " GIT_VERSION));
-  setup_ble();
-  setup_as7262();
-  setup_opt3001();
   setup_tft(); 
-  act_lux_enter();
+  display("Hello", "World");
 }
 
 
 void loop() 
 {
-  static uint8_t  screen = GUI_LUX_SCREEN; // The current screen
-  menu_action_t   action;
-  uint8_t         event;
- 
-  event  = read_buttons();
-  //Serial.print(F("State: "));  Serial.print(screen); Serial.print(F(" Event: ")); Serial.println(event);
-  action = get_action(screen, event);
-  screen = get_next_screen(screen, event);
-  action();  // execute the action
+  
+  switch(read_buttons()) {
+
+  case GUI_NO_EVENT  :
+    break; /* optional */
+
+  case GUI_KEY_A_PRESSED  :
+    Serial.println(F("Key A pressed"));
+    display("Key", "A");
+    break; /* optional */
+    
+  case GUI_KEY_B_PRESSED  :
+    Serial.println(F("Key B pressed"));
+    display("Key", "B");
+    break; /* optional */
+
+  case GUI_JOY_UP  :
+    Serial.println(F("Joystick up"));
+    display("Joystick", "UP");
+    break; /* optional */
+
+  case GUI_JOY_DOWN  :
+    Serial.println(F("Joystick down"));
+    display("Joystick", "DOWN");
+    break; /* optional */
+
+  case GUI_JOY_LEFT  :
+    Serial.println(F("Joystick left"));
+    display("Joystick", "LEFT");
+    break; /* optional */
+
+  case GUI_JOY_RIGHT  :
+    Serial.println(F("Joystick right"));
+    display("Joystick", "RIGHT");
+    break; /* optional */
+
+  case GUI_JOY_PRESSED  :
+    Serial.println(F("Joystick pressed"));
+    display("Joystick", "BUTTON");
+    break; /* optional */
+  
+   /* you can have any number of case statements */
+   default : /* Optional */
+    break;
+  }
 }
+  
+
