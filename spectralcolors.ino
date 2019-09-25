@@ -376,6 +376,7 @@ static void error(const __FlashStringHelper* err)
 static uint8_t read_buttons()
 {
   extern Adafruit_miniTFTWing ss;
+  extern bool toSerial;
 
   uint8_t event = GUI_NO_EVENT;
 
@@ -583,7 +584,7 @@ static void format_opt3001_msg(String& line)
   extern unsigned long seqOPT;
  
   // Start JSON sequence
-  line += String("['O',");
+  line += String("[\"O\",");
   // Sequence number
   line += String(seqOPT++); line += String(',');
   // Relative timestamp
@@ -593,7 +594,7 @@ static void format_opt3001_msg(String& line)
   // OPT 3001 lux readings
   line += String(opt3001_info.lux, 2);
   // End JSON sequence
-  line += String("]\n"); 
+  line += String("]\r\n"); 
 }
 
 /* ************************************************************************** */ 
@@ -605,7 +606,7 @@ static void format_as7262_msg(String& line)
   extern const char*   GainTable[];
  
    // Start JSON sequence
-  line += String("['A',");
+  line += String("[\"A\",");
   // Sequence number
   line += String(seqAS++);  line += String(',');
   // Relative timestamp
@@ -623,7 +624,7 @@ static void format_as7262_msg(String& line)
   }
   line += String(as7262_info.calibratedValues[5], 4); 
   // End JSON sequence
-  line += String("]\n"); 
+  line += String("]\r\n"); 
 }
 
 /* ************************************************************************** */ 
