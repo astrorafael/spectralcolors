@@ -382,6 +382,16 @@ static uint8_t read_buttons()
   // miniTFT wing buttons;
   uint32_t buttons;
 
+  // Read Serial Port commands
+  if (Serial.available() > 0) {
+    // read the incoming byte:
+    unsigned char cmd = Serial.read();
+    if (cmd == CMD_ENABLE_SERIAL)
+      toSerial = true;
+    else if (cmd == CMD_DISABLE_SERIAL)
+      toSerial = false;
+  }
+
   // read buttons via the I2C SeeSaw chip in miniTFTWing
   // These buttons are active-low logic
   buttons = ss.readButtons();
@@ -624,15 +634,6 @@ static void act_idle()
 {
   extern Adafruit_BluefruitLE_SPI ble;
   extern byte toSerial;
-
-  if (Serial.available() > 0) {
-    // read the incoming byte:
-    unsigned char cmd = Serial.read();
-    if (cmd == CMD_ENABLE_SERIAL)
-      toSerial = true;
-    else if (cmd == CMD_DISABLE_SERIAL)
-      toSerial = false;
-  }
 
   if (read_as7262_sensor()) {
     String line;
