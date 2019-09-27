@@ -554,7 +554,7 @@ static void display_exposure()
   // Display the exposure value string in TFT
   tft.setCursor(0, tft.width()/3);
   tft.setTextColor(ST7735_YELLOW, ST7735_BLACK);
-  tft.print(as7262_info.exposure*EXPOSURE_UNIT,1); tft.print(" ms");
+  tft.print(as7262_info.exposure*EXPOSURE_UNIT*2,1); tft.print(" ms");
   delay(SHORT_DELAY);
 }
 
@@ -612,7 +612,7 @@ static void format_as7262_msg(String& line)
   // Relative timestamp
   line += String(millis()); line += String(',');
   // AS7262 Exposure time in milliseconds
-  line += String(as7262_info.exposure*EXPOSURE_UNIT,1); line += String(',');
+  line += String(as7262_info.exposure*EXPOSURE_UNIT*2,1); line += String(',');
   // AS7262 Gain
   line += String(GainTable[as7262_info.gain]); line += String(',');
   // AS7262 Temperature
@@ -620,9 +620,11 @@ static void format_as7262_msg(String& line)
   // AS7262 calibrated values
   for (int i=0; i< 5; i++) {
       line += String(as7262_info.calibratedValues[i], 2); 
+      line += String(','); line += String(as7262_info.rawValues[i]); 
       line += String(',');
   }
   line += String(as7262_info.calibratedValues[5], 2); 
+  line += String(','); line += String(as7262_info.rawValues[5]);
   // End JSON sequence
   line += String("]\r\n"); 
 }
