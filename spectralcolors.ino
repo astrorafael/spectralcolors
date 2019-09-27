@@ -619,10 +619,10 @@ static void format_as7262_msg(String& line)
   line += String(as7262_info.temperature); line += String(',');
   // AS7262 calibrated values
   for (int i=0; i< 5; i++) {
-      line += String(as7262_info.calibratedValues[i], 4); 
+      line += String(as7262_info.calibratedValues[i], 2); 
       line += String(',');
   }
-  line += String(as7262_info.calibratedValues[5], 4); 
+  line += String(as7262_info.calibratedValues[5], 2); 
   // End JSON sequence
   line += String("]\r\n"); 
 }
