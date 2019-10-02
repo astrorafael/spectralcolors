@@ -1,12 +1,12 @@
 # Spectral Colors
 
 Low Cost, Low Resolution 6 band spectrograph Arduno project based on the AS7262 device.
-This educational project is devveloped under EU-funded ACTION project.
+This educational project is developped under EU-funded [ACTION project](https://actionproject.eu/).
 
 ## Notes
 
 The current version is based on the following hardware:
-* [Arduino Nano](https://store.arduino.cc/arduino-nano) or [Arduino Nano Every](https://store.arduino.cc/nano-every)
+* [Arduino Nano](https://store.arduino.cc/arduino-nano)
 * [Adafruit AS7262 6-Channel Visible Light / Color Sensor Breakout](https://www.adafruit.com/product/3779)
 * [OPT3001 Digital Ambient Light Sensor Breakout](https://www.tindie.com/products/closedcube/opt3001-digital-ambient-light-sensor-breakout/)
 * [Adafruit Mini Color TFT with Joystick FeatherWing](https://www.adafruit.com/product/3321)
@@ -29,7 +29,7 @@ As the Arduino Nano flash memory is almost full (98%), we cannot include feature
 * a better menu system
 * etc.
 
-A future release based sole on the Arduino Nano Every will include the above features.
+A future release based on the pin-to-pin compatible [Arduino Nano Every](https://store.arduino.cc/nano-every) will include the above features.
 
 ## Power Supply Issues
 
