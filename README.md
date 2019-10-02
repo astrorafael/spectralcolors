@@ -5,12 +5,31 @@ This educational project is devveloped under EU-funded ACTION project.
 
 ## Notes
 
-The current version is based on:
+The current version is based on the following hardware:
 * [Arduino Nano](https://store.arduino.cc/arduino-nano) or [Arduino Nano Every](https://store.arduino.cc/nano-every)
 * [Adafruit AS7262 6-Channel Visible Light / Color Sensor Breakout](https://www.adafruit.com/product/3779)
 * [OPT3001 Digital Ambient Light Sensor Breakout](https://www.tindie.com/products/closedcube/opt3001-digital-ambient-light-sensor-breakout/)
 * [Adafruit Mini Color TFT with Joystick FeatherWing](https://www.adafruit.com/product/3321)
 * [Adafruit Bluefruit LE SPI Friend - Bluetooth Low Energy (BLE)](https://www.adafruit.com/product/2633)
+
+## Features
+
+The main features of this release are:
+* Reads AS7262 & OPT3001 sensors
+* Display sensor readings on a color mini TFT display (bar graph in case of AS7262).
+* A simple menu system allows you to configurate AS7262 gain & exposure time
+* Sends readings by Bluetooth and optionally by serial port.
+
+## Limitations
+
+As the Arduino Nano flash memory is almost full (98%), we cannot include features like:
+
+* commands via BT or serial port to configure the device in the same way as done from the TFT desplay.
+* accumulation of AS7262 sensor readings to boost sensitivity in low light conditions.
+* a better menu system
+* etc.
+
+A future release based sole on the Arduino Nano Every will include the above features.
 
 ## Power Supply Issues
 
