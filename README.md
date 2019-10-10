@@ -60,7 +60,7 @@ Readings are sent in a compact but still valid JSON format as a sequence of valu
 ### Data format for OPT3001 sensor readings
 
 | Index |  Type  | Units | Description                                                 |
-|:-----:|:------:|:-----:|:--------:|:-------------------------------------------------|
+|:-----:|:------:|:-----:|:------------------------------------------------------------|
 | 0     | string |   -   | Sensor Type. "O" = OPT3001.                                 |
 | 1     | int    |   -   | Message sequence number. Useful to detect missing messages. |
 | 2     | int    |   ms  | Relative timestamp since the Arduino boot.                  |
@@ -85,8 +85,8 @@ The decoding of such message is shown:
 ### Data format for AS7262 sensor readings
 
 
-| Index |  Type  | Units | Description                       |
-|:-----:|:------:|:-----:|:--------:|:----------------------------------|
+| Index |  Type  | Units | Description                                  |
+|:-----:|:------:|:-----:|:---------------------------------------------|
 | 0     | string |   -   | Sensor Type. "A" = AS7262, "O" = OPT3001. |
 | 1     | int    |   -   | Message sequence number. Useful to detect missing messages. |
 | 2     | int    |   ms  | Relative timestamp since the Arduino boot. |
