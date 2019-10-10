@@ -589,6 +589,8 @@ static void format_opt3001_msg(String& line)
   line += String(seqOPT++); line += String(',');
   // Relative timestamp
   line += String(millis()); line += String(',');
+  // Accumulated readings (fixed to 1)
+  line += String(1); line += String(',');
   // Exposure time in milliseconds (fixed to 800)
   line += String("800"); line += String(',');
   // OPT 3001 lux readings
@@ -611,6 +613,8 @@ static void format_as7262_msg(String& line)
   line += String(seqAS++);  line += String(',');
   // Relative timestamp
   line += String(millis()); line += String(',');
+  // Accumulated readings (fixed to 1)
+  line += String(1); line += String(',');
   // AS7262 Exposure time in milliseconds
   line += String(as7262_info.exposure*EXPOSURE_UNIT*2,1); line += String(',');
   // AS7262 Gain

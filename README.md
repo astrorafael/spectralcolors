@@ -64,8 +64,9 @@ Readings are sent in a compact but still valid JSON format as a sequence of valu
 | 0     | string |   -   | Sensor Type. "O" = OPT3001. |
 | 1     | int    |   -   | Message sequence number. Useful to detect missing messages. |
 | 2     | int    |   ms  | Relative timestamp since the Arduino boot. |
-| 3     | int    |   ms  | Sensor exposure time. | 
-| 4     | float  |   lux | Light intensity as perceived by the human eye. |
+| 3     | int    |   -   | Number of readings accumulated. |
+| 4     | int    |   ms  | Sensor exposure time (individual reading).. | 
+| 5     | float  |   lux | Light intensity as perceived by the human eye. |
 
 Example:
 ```
@@ -76,6 +77,7 @@ The decoding of such message is shown:
 * "O" => OPT3001 sensor
 * 18 => Sequence number
 * 16920 => milliseconds since power on
+* 1 => Accumulated readings (1=only one)
 * 800 => OPT3001 exposure time (ms)
 * 96.48 => Light intensity (lux)
 
@@ -88,21 +90,22 @@ The decoding of such message is shown:
 | 0     | string |   -   | Sensor Type. "A" = AS7262, "O" = OPT3001. |
 | 1     | int    |   -   | Message sequence number. Useful to detect missing messages. |
 | 2     | int    |   ms  | Relative timestamp since the Arduino boot. |
-| 3     | float  |   ms  | Sensor exposure time. | 
-| 4     | float  |   -   | Sensor gain. |
-| 5     | int    |  ºC   | AS7262 internal temperature. |
-| 6     | float  | counts/μW/cm2 | Violet (450nm) calibrated value. |
-| 7     | int    | counts/μW/cm2 | Violet (450nm) raw value. |
-| 8     | float  | counts/μW/cm2 | Blue (500nm) calibrated value. |
-| 9     | int    | counts/μW/cm2 | Blue (500nm) raw value. |
-| 10    | float  | counts/μW/cm2 | Green (550nm) calibrated value. |
-| 11    | int    | counts/μW/cm2 | Green (550nm) raw value. |
-| 12    | float  | counts/μW/cm2 | Yellow (570nm) calibrated value. |
-| 13    | int    | counts/μW/cm2 | Yellow (570nm) raw value. |
-| 14    | float  | counts/μW/cm2 | Orange (600nm) calibrated value. |
-| 15    | int    | counts/μW/cm2 | Orange (600nm) raw value. |
-| 16    | float  | counts/μW/cm2 | Red (650nm) calibrated value. |
-| 17    | int    | counts/μW/cm2 | Red (650nm) raw value. |
+| 3     | int    |   -   | Number of readings accumulated. |
+| 4     | float  |   ms  | Sensor exposure time (individual reading). | 
+| 5     | float  |   -   | Sensor gain. |
+| 6     | int    |  ºC   | AS7262 internal temperature. |
+| 7     | float  | counts/μW/cm2 | Violet (450nm) calibrated value. |
+| 8     | int    | counts/μW/cm2 | Violet (450nm) raw value. |
+| 9     | float  | counts/μW/cm2 | Blue (500nm) calibrated value. |
+| 10    | int    | counts/μW/cm2 | Blue (500nm) raw value. |
+| 11    | float  | counts/μW/cm2 | Green (550nm) calibrated value. |
+| 12    | int    | counts/μW/cm2 | Green (550nm) raw value. |
+| 13    | float  | counts/μW/cm2 | Yellow (570nm) calibrated value. |
+| 14    | int    | counts/μW/cm2 | Yellow (570nm) raw value. |
+| 15    | float  | counts/μW/cm2 | Orange (600nm) calibrated value. |
+| 16    | int    | counts/μW/cm2 | Orange (600nm) raw value. |
+| 17    | float  | counts/μW/cm2 | Red (650nm) calibrated value. |
+| 18    | int    | counts/μW/cm2 | Red (650nm) raw value. |
 
 
 Example:
@@ -114,6 +117,7 @@ The decoding of such message is shown:
 * "A" => AS7262 sensor
 * 45 => Sequence number
 * 16869 => milliseconds since power on
+* 1 => Accumulated readings (1=only one)
 * 280.0 => AS7262 exposure time (ms)
 * 64 => AS7262 gain
 * 27 => AS7262 temperature (ºC)
