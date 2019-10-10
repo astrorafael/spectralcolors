@@ -59,14 +59,14 @@ Readings are sent in a compact but still valid JSON format as a sequence of valu
 
 ### Data format for OPT3001 sensor readings
 
-| Index |  Type  | Units | Description                       |
-|:-----:|:------:|:-----:|:--------:|:----------------------------------|
-| 0     | string |   -   | Sensor Type. "O" = OPT3001. |
+| Index |  Type  | Units | Description                                                 |
+|:-----:|:------:|:-----:|:--------:|:-------------------------------------------------|
+| 0     | string |   -   | Sensor Type. "O" = OPT3001.                                 |
 | 1     | int    |   -   | Message sequence number. Useful to detect missing messages. |
-| 2     | int    |   ms  | Relative timestamp since the Arduino boot. |
-| 3     | int    |   -   | Number of readings accumulated. |
-| 4     | int    |   ms  | Sensor exposure time (individual reading).. | 
-| 5     | float  |   lux | Light intensity as perceived by the human eye. |
+| 2     | int    |   ms  | Relative timestamp since the Arduino boot.                  |
+| 3     | int    |   -   | Number of readings accumulated.                             |
+| 4     | int    |   ms  | Sensor exposure time (individual reading).                  | 
+| 5     | float  |   lux | Light intensity as perceived by the human eye.              |
 
 Example:
 ```
