@@ -188,6 +188,9 @@ So, the built-in LED becomes unusable after miniTFTWing initialization
 // Other constants
 // ---------------
 
+// Maximun number of readings to accumulate
+#define MAX_ACCUM  16
+
 // steps in a single button up/down click
 #define EXPOSURE_STEPS 20 
 
@@ -300,23 +303,24 @@ enum gui_state {
 // --------------------------------------------
 // State Machine Actions (Forward declarations)
 // --------------------------------------------
-static void act_idle();
-static void act_gain_in();
-static void act_gain_up();
-static void act_gain_down();
-static void act_light_in();
-static void act_light_up();
-static void act_light_down();
-static void act_expos_in();
-static void act_expos_up();
-static void act_expos_down();
-static void act_spect_in();
-static void act_spect_idle();
-static void act_lux_in();
-static void act_lux_idle();
-static void act_accum_in();
-static void act_accum_up();
-static void act_accum_down();
+
+static void act_idle();       // The Idle activity
+static void act_gain_in();    // Entering the gain screen
+static void act_gain_up();    // Raise the gain action
+static void act_gain_down();  // Lower the gain action
+static void act_light_in();   // Entering the backlight screen
+static void act_light_up();   // Brightening the backlight
+static void act_light_down(); // Dimming the backlight
+static void act_expos_in();   // Entering the AS7262 exposure time screen
+static void act_expos_up();   // Increase the AS7262 exposure time
+static void act_expos_down(); // Decrease the AS7262 exposure time
+static void act_spect_in();   // Display the spectrum bars
+static void act_spect_idle(); // Idle activity when in the spectrum bars screen
+static void act_lux_in();     // Entering the luxometer screen
+static void act_lux_idle();   // Idle activity when in the luxometer screen
+static void act_accum_in();   // Entering the accumulate readings screen
+static void act_accum_up();   // Increasde the accumulation of readings
+static void act_accum_down(); // Decrease the accumulation ofn readings
 
 
 // Action to execute as a function of current state and event
@@ -884,13 +888,17 @@ static void act_accum_in()
   display_accum();
 }
 
+/* ------------------------------------------------------------------------- */ 
+
 static void act_accum_up()
 {
   extern as7262_info_t   as7262_info;
 
-  as7262_info.accLimit = min(16, 2*as7262_info.accLimit);
+  as7262_info.accLimit = min(MAX_ACCUM, 2*as7262_info.accLimit);
   display_accum();
 }
+
+/* ------------------------------------------------------------------------- */ 
 
 static void act_accum_down()
 {
