@@ -216,13 +216,13 @@ typedef struct {
 } as7262_readings_t;
 
 typedef struct {
-  as7262_readings_t accumulated;
-  as7262_readings_t latched;
-  uint8_t  gain;           // device gain multiplier
-  uint8_t  exposure;       // device integration time in steps of 2.8 ms
-  uint8_t  temperature;    // device internal temperature
-  uint8_t  accCount;       // Current accumulation count
-  uint8_t  accLimit;       // Current accumulation limit
+  as7262_readings_t accumulated;    // Accumulated values from several readings
+  as7262_readings_t latched;        // Latched values once it has been accumulated
+  uint8_t           gain;           // device gain multiplier
+  uint8_t           exposure;       // device integration time in steps of 2.8 ms
+  uint8_t           temperature;    // device internal temperature
+  uint8_t           accCount;       // Current accumulation count
+  uint8_t           accLimit;       // Current accumulation limit
 } as7262_info_t;
 
 typedef struct {
@@ -493,7 +493,7 @@ static uint8_t read_as7262_sensor()
 {
   extern Adafruit_AS726x ams;
   extern as7262_info_t as7262_info;
-   as7262_readings_t current;
+  as7262_readings_t current;
 
   uint8_t dataReady = ams.dataReady();
   if(dataReady) {
@@ -507,7 +507,7 @@ static uint8_t read_as7262_sensor()
       as7262_copy(&as7262_info.latched, &as7262_info.accumulated);
       as7262_zero(&as7262_info.accumulated);
     } else {
-      dataReady = 0;
+      dataReady = 0;  // still accumulating readings ....
     }
   }
   return dataReady;
@@ -541,7 +541,7 @@ static void display_bars(bool refresh)
 
   // see if we really have to redraw the bars
   for(int i=0; i<AS726x_NUM_CHANNELS; i++) {
-    height[i][curBuf] = map(as7262_info.accumulated.calibrated[i], 0, SENSOR_MAX, 0, tft.height());
+    height[i][curBuf] = map(as7262_info.latched.calibrated[i], 0, SENSOR_MAX, 0, tft.height());
     if (height[i][curBuf] != height[i][curBuf  ^ 0x01]) {
       refresh = true;
     }
@@ -644,7 +644,7 @@ static void display_accum()
   tft.setTextSize(3); // 3x the original font
   tft.setCursor(tft.height()/3, 0);
   tft.setTextColor(ST7735_WHITE, ST7735_BLACK);
-  tft.print("Accumula");
+  tft.print("Accum");
   // Display the accumulator value string in TFT
   tft.setCursor(tft.height()/3, tft.width()/3);
   tft.setTextColor(ST7735_YELLOW, ST7735_BLACK);
@@ -888,7 +888,7 @@ static void act_accum_up()
 {
   extern as7262_info_t   as7262_info;
 
-  as7262_info.accLimit = min(64, 2*as7262_info.accLimit);
+  as7262_info.accLimit = min(16, 2*as7262_info.accLimit);
   display_accum();
 }
 
