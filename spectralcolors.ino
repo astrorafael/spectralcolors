@@ -452,7 +452,7 @@ static uint8_t read_buttons()
 
 /* ************************************************************************** */ 
 
-static uint8_t read_opt3001_sensor()
+static uint8_t opt3001_read()
 {
   extern ClosedCube_OPT3001 opt3001;
   extern OPT3001 opt3001_info;
@@ -474,6 +474,8 @@ static void as7262_copy(as7262_readings_t* dst, as7262_readings_t* src)
   *dst = *src;
 }
 
+/* ************************************************************************** */ 
+
 static void as7262_zero(as7262_readings_t* src)
 {
   for (int i=0; i<AS726x_NUM_CHANNELS; i++) {
@@ -482,6 +484,7 @@ static void as7262_zero(as7262_readings_t* src)
   }
 }
 
+/* ************************************************************************** */ 
 
 static void as7262_accumulate(as7262_readings_t* dst, as7262_readings_t* src)
 {
@@ -493,7 +496,7 @@ static void as7262_accumulate(as7262_readings_t* dst, as7262_readings_t* src)
 
 /* ************************************************************************** */ 
 
-static uint8_t read_as7262_sensor()
+static uint8_t as7262_read()
 {
   extern Adafruit_AS726x ams;
   extern as7262_info_t as7262_info;
@@ -723,7 +726,7 @@ static void act_idle()
   extern Adafruit_BluefruitLE_SPI ble;
   extern bool toSerial;
 
-  if (read_as7262_sensor()) {
+  if (as7262_read()) {
     String line;
     format_as7262_msg(line);
     if (ble.isConnected()) 
@@ -732,7 +735,7 @@ static void act_idle()
       Serial.print(line);
   }
 
-  if (read_opt3001_sensor()) {
+  if (opt3001_read()) {
     String line;
     format_opt3001_msg(line);
     if (ble.isConnected())
