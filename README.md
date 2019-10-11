@@ -17,15 +17,15 @@ The current version is based on the following hardware:
 The main features of this release are:
 * Reads AS7262 & OPT3001 sensors
 * Display sensor readings on a color mini TFT display (bar graph in case of AS7262).
-* A simple menu system allows you to configurate AS7262 gain & exposure time
+* A simple menu system allows you to configurate AS7262 gain & exposure time.
+* Accumulate AS7262 readings (2x, 4x, 8x, 16x factors) for very low lighting conditions.
 * Sends readings by Bluetooth and optionally by serial port.
 
 ## Limitations
 
-As the Arduino Nano flash memory is almost full (98%), we cannot include features like:
+As the Arduino Nano flash memory is almost full (99%), we cannot include features like:
 
 * commands via BT or serial port to configure the device in the same way as done from the TFT desplay.
-* accumulation of AS7262 sensor readings to boost sensitivity in low light conditions.
 * a better menu system
 * etc.
 
