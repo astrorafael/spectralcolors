@@ -210,13 +210,19 @@ const char* GainTable[] = {
 /* ************************************************************************** */ 
 /*                        CUSTOM CLASES & DATA TYPES                          */
 /* ************************************************************************** */ 
+typedef struct {
+    float     calibrated[AS726x_NUM_CHANNELS];
+    uint16_t  raw[AS726x_NUM_CHANNELS];
+} as7262_readings_t;
 
 typedef struct {
-  float    calibratedValues[AS726x_NUM_CHANNELS];
-  uint16_t rawValues[AS726x_NUM_CHANNELS];
+  as7262_readings_t accumulated;
+  as7262_readings_t latched;
   uint8_t  gain;           // device gain multiplier
   uint8_t  exposure;       // device integration time in steps of 2.8 ms
   uint8_t  temperature;    // device internal temperature
+  uint8_t  accCount;       // Current accumulation count
+  uint8_t  accLimit;       // Current accumulation limit
 } as7262_info_t;
 
 typedef struct {
@@ -282,30 +288,35 @@ enum gui_events {
 
 // TFT Screens as states
 enum gui_state {
-  GUI_BAKLIGHT_SCREEN     = 0,
-  GUI_GAIN_SCREEN,
-  GUI_EXPOSURE_SCREEN,
-  GUI_SPECTRUM_SCREEN,
-  GUI_LUX_SCREEN
+  GUI_LIGHT_SCR     = 0,
+  GUI_GAIN_SCR,
+  GUI_EXPOS_SCR,
+  GUI_SPECT_SCR,
+  GUI_LUX_SCR,
+  GUI_ACCUM_SCR,
+  GUI_MAX_STATES
 };
 
 // --------------------------------------------
 // State Machine Actions (Forward declarations)
 // --------------------------------------------
 static void act_idle();
-static void act_gain_enter();
+static void act_gain_in();
 static void act_gain_up();
 static void act_gain_down();
-static void act_baklight_enter();
-static void act_baklight_up();
-static void act_baklight_down();
-static void act_exposure_enter();
-static void act_exposure_up();
-static void act_exposure_down();
-static void act_spectrum_enter();
-static void act_spectrum_idle();
-static void act_lux_enter();
+static void act_light_in();
+static void act_light_up();
+static void act_light_down();
+static void act_expos_in();
+static void act_expos_up();
+static void act_expos_down();
+static void act_spect_in();
+static void act_spect_idle();
+static void act_lux_in();
 static void act_lux_idle();
+static void act_accum_in();
+static void act_accum_up();
+static void act_accum_down();
 
 
 // Action to execute as a function of current state and event
@@ -313,17 +324,17 @@ static void act_lux_idle();
 // Use of PROGMEM and pgm_xxx() functions is necessary
 static menu_action_t get_action(uint8_t state, uint8_t event)
 {
-  static const menu_action_t menu_action[][5] PROGMEM = {
-    // BACKLIGHT SCREEN | GAIN SCREEN      |   EXPOSURE SCREEN    |    SPECTRUM SCREEN   | LUX SCREEN
-    //------------------+------------------+----------------------+----------------------+------------
-    { act_idle,           act_idle,           act_idle,               act_spectrum_idle,   act_lux_idle       }, // GUI_NO_EVENT
-    { act_baklight_up,    act_gain_up,        act_exposure_up,        act_idle,            act_idle           }, // GUI_KEY_A_PRESSED
-    { act_baklight_down,  act_gain_down,      act_exposure_down,      act_idle,            act_idle           }, // GUI_KEY_B_PRESSED
-    { act_spectrum_enter, act_spectrum_enter, act_spectrum_enter,     act_spectrum_enter,  act_spectrum_enter }, // GUI_JOY_PRESSED
-    { act_baklight_up,    act_gain_up,        act_exposure_up,        act_idle,            act_idle           }, // GUI_JOY_UP
-    { act_baklight_down,  act_gain_down,      act_exposure_down,      act_idle,            act_idle           }, // GUI_JOY_DOWN
-    { act_lux_enter,      act_baklight_enter, act_gain_enter,         act_exposure_enter,  act_spectrum_enter }, // GUI_JOY_LEFT
-    { act_gain_enter,     act_exposure_enter, act_spectrum_enter,     act_lux_enter,       act_baklight_enter }  // GUI_JOY_RIGHT
+  static const menu_action_t menu_action[][GUI_MAX_STATES] PROGMEM = {
+    // LIGHT SCREEN   | GAIN SCREEN   | EXPOSURE SCR   | SPECTRUM SCR  | LUX SCREEN    | ACCUM SCREEN  |
+    //----------------+---------------+----------------+---------------+---------------+---------------+
+    { act_idle,        act_idle,       act_idle,        act_spect_idle, act_lux_idle,   act_idle       }, // GUI_NO_EVENT
+    { act_light_up,    act_gain_up,    act_expos_up,    act_idle,       act_idle,       act_accum_up   }, // GUI_KEY_A_PRESSED
+    { act_light_down,  act_gain_down,  act_expos_down,  act_idle,       act_idle,       act_accum_down }, // GUI_KEY_B_PRESSED
+    { act_spect_in,    act_spect_in,   act_spect_in,    act_spect_in,   act_spect_in,   act_spect_in   }, // GUI_JOY_PRESSED
+    { act_light_up,    act_gain_up,    act_expos_up,    act_idle,       act_idle,       act_accum_up   }, // GUI_JOY_UP
+    { act_light_down,  act_gain_down,  act_expos_down,  act_idle,       act_idle,       act_accum_down }, // GUI_JOY_DOWN
+    { act_accum_in,    act_light_in,   act_gain_in,     act_expos_in,   act_spect_in,   act_lux_in     }, // GUI_JOY_LEFT
+    { act_gain_in,     act_expos_in,   act_spect_in,    act_lux_in,     act_accum_in,   act_light_in   }  // GUI_JOY_RIGHT
   };
   return (menu_action_t) pgm_read_ptr(&menu_action[event][state]);
 }
@@ -335,17 +346,17 @@ static menu_action_t get_action(uint8_t state, uint8_t event)
 // Use of PROGMEM and pgm_xxx() functions is necessary
 static uint8_t get_next_screen(uint8_t state, uint8_t event)
 {
-  static const PROGMEM uint8_t next_screen[][5] = {
-    // BACKLIGHT SCREEN      | GAIN SCREEN      |   EXPOSURE SCREEN    |    SPECTRUM SCREEN   | LUX SCREEN
-    //----------------------+------------------+-----------------------+-----------------------+------------
-      { GUI_BAKLIGHT_SCREEN,  GUI_GAIN_SCREEN,     GUI_EXPOSURE_SCREEN,   GUI_SPECTRUM_SCREEN, GUI_LUX_SCREEN }, // GUI_NO_EVENT
-      { GUI_BAKLIGHT_SCREEN,  GUI_GAIN_SCREEN,     GUI_EXPOSURE_SCREEN,   GUI_SPECTRUM_SCREEN, GUI_LUX_SCREEN }, // GUI_KEY_A_PRESSED
-      { GUI_BAKLIGHT_SCREEN,  GUI_GAIN_SCREEN,     GUI_EXPOSURE_SCREEN,   GUI_SPECTRUM_SCREEN, GUI_LUX_SCREEN }, // GUI_KEY_B_PRESSED
-      { GUI_SPECTRUM_SCREEN,  GUI_SPECTRUM_SCREEN, GUI_SPECTRUM_SCREEN,   GUI_SPECTRUM_SCREEN, GUI_SPECTRUM_SCREEN }, // GUI_JOY_PRESSED
-      { GUI_BAKLIGHT_SCREEN,  GUI_GAIN_SCREEN,     GUI_EXPOSURE_SCREEN,   GUI_SPECTRUM_SCREEN, GUI_LUX_SCREEN }, // GUI_JOY_UP
-      { GUI_BAKLIGHT_SCREEN,  GUI_GAIN_SCREEN,     GUI_EXPOSURE_SCREEN,   GUI_SPECTRUM_SCREEN, GUI_LUX_SCREEN }, // GUI_JOY_DOWN
-      { GUI_LUX_SCREEN,       GUI_BAKLIGHT_SCREEN, GUI_GAIN_SCREEN,       GUI_EXPOSURE_SCREEN, GUI_SPECTRUM_SCREEN }, // GUI_JOY_LEFT
-      { GUI_GAIN_SCREEN,      GUI_EXPOSURE_SCREEN, GUI_SPECTRUM_SCREEN,   GUI_LUX_SCREEN,      GUI_BAKLIGHT_SCREEN }  // GUI_JOY_RIGHT
+  static const PROGMEM uint8_t next_screen[][GUI_MAX_STATES] = {
+    // LIGHT SCREEN   | GAIN SCREEN   | EXPOSURE SCR   | SPECTRUM SCR  | LUX SCREEN    | ACCUM SCREEN  |
+    //----------------+---------------+----------------+---------------+---------------+---------------+
+      { GUI_LIGHT_SCR,  GUI_GAIN_SCR,   GUI_EXPOS_SCR,   GUI_SPECT_SCR,  GUI_LUX_SCR,    GUI_ACCUM_SCR }, // GUI_NO_EVENT
+      { GUI_LIGHT_SCR,  GUI_GAIN_SCR,   GUI_EXPOS_SCR,   GUI_SPECT_SCR,  GUI_LUX_SCR,    GUI_ACCUM_SCR }, // GUI_KEY_A_PRESSED
+      { GUI_LIGHT_SCR,  GUI_GAIN_SCR,   GUI_EXPOS_SCR,   GUI_SPECT_SCR,  GUI_LUX_SCR,    GUI_ACCUM_SCR }, // GUI_KEY_B_PRESSED
+      { GUI_SPECT_SCR,  GUI_SPECT_SCR,  GUI_SPECT_SCR,   GUI_SPECT_SCR,  GUI_SPECT_SCR,  GUI_SPECT_SCR }, // GUI_JOY_PRESSED
+      { GUI_LIGHT_SCR,  GUI_GAIN_SCR,   GUI_EXPOS_SCR,   GUI_SPECT_SCR,  GUI_LUX_SCR,    GUI_ACCUM_SCR }, // GUI_JOY_UP
+      { GUI_LIGHT_SCR,  GUI_GAIN_SCR,   GUI_EXPOS_SCR,   GUI_SPECT_SCR,  GUI_LUX_SCR,    GUI_ACCUM_SCR }, // GUI_JOY_DOWN
+      { GUI_ACCUM_SCR,  GUI_LIGHT_SCR,  GUI_GAIN_SCR,    GUI_EXPOS_SCR,  GUI_SPECT_SCR,  GUI_LUX_SCR   }, // GUI_JOY_LEFT
+      { GUI_GAIN_SCR,   GUI_EXPOS_SCR,  GUI_SPECT_SCR,   GUI_LUX_SCR,    GUI_ACCUM_SCR,  GUI_LIGHT_SCR }  // GUI_JOY_RIGHT
     };
   return pgm_read_byte(&next_screen[event][state]);
 }
@@ -358,9 +369,10 @@ static uint8_t get_next_screen(uint8_t state, uint8_t event)
 /*                            HELPER FUNCTIONS                                */
 /* ************************************************************************** */ 
 
-
 // A small helper
-static void error(const __FlashStringHelper* err) 
+
+#ifdef ARDUINO_AVR_NANO_EVERY
+static void error(const char* err) 
 {
   Serial.println(err);
   //delay(5000);
@@ -369,6 +381,17 @@ static void error(const __FlashStringHelper* err)
   //sleep_cpu();
   while(1) ;
 }
+#else
+static void error(const  __FlashStringHelper* err) 
+{
+  Serial.println(err);
+  //delay(5000);
+  //sleep_enable();
+  //set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+  //sleep_cpu();
+  while(1) ;
+}
+#endif
 
 /* ************************************************************************** */ 
 
@@ -439,21 +462,57 @@ static uint8_t read_opt3001_sensor()
   return dataReady;
 }
 
+
+/* ************************************************************************** */ 
+
+static void as7262_copy(as7262_readings_t* dst, as7262_readings_t* src)
+{
+  *dst = *src;
+}
+
+static void as7262_zero(as7262_readings_t* src)
+{
+  for (int i=0; i<AS726x_NUM_CHANNELS; i++) {
+    src->raw[i]        = 0;
+    src->calibrated[i] = 0.0;
+  }
+}
+
+
+static void as7262_accumulate(as7262_readings_t* dst, as7262_readings_t* src)
+{
+  for (int i=0; i<AS726x_NUM_CHANNELS; i++) {
+    dst->raw[i]        += src->raw[i];
+    dst->calibrated[i] += src->calibrated[i];
+  }
+}
+
 /* ************************************************************************** */ 
 
 static uint8_t read_as7262_sensor()
 {
   extern Adafruit_AS726x ams;
   extern as7262_info_t as7262_info;
+   as7262_readings_t current;
 
   uint8_t dataReady = ams.dataReady();
   if(dataReady) {
-    ams.readCalibratedValues(as7262_info.calibratedValues);
-    ams.readRawValues(as7262_info.rawValues);
+    ams.readCalibratedValues(current.calibrated);
+    ams.readRawValues(current.raw);
     as7262_info.temperature = ams.readTemperature();
+    as7262_accumulate(&as7262_info.accumulated, &current);
+    as7262_info.accCount += 1;
+    as7262_info.accCount &= as7262_info.accLimit-1;
+    if (as7262_info.accCount == 0) {
+      as7262_copy(&as7262_info.latched, &as7262_info.accumulated);
+      as7262_zero(&as7262_info.accumulated);
+    } else {
+      dataReady = 0;
+    }
   }
   return dataReady;
 }
+
 
 /* ************************************************************************** */ 
 
@@ -482,7 +541,7 @@ static void display_bars(bool refresh)
 
   // see if we really have to redraw the bars
   for(int i=0; i<AS726x_NUM_CHANNELS; i++) {
-    height[i][curBuf] = map(as7262_info.calibratedValues[i], 0, SENSOR_MAX, 0, tft.height());
+    height[i][curBuf] = map(as7262_info.accumulated.calibrated[i], 0, SENSOR_MAX, 0, tft.height());
     if (height[i][curBuf] != height[i][curBuf  ^ 0x01]) {
       refresh = true;
     }
@@ -543,7 +602,6 @@ static void display_backlight()
 static void display_exposure()
 {
   extern as7262_info_t as7262_info;
-  extern tft_info_t    tft_info;
 
   tft.fillScreen(ST7735_BLACK);
   // Display the "Gain" sttring in TFT
@@ -563,7 +621,6 @@ static void display_exposure()
 static void display_lux()
 {
   extern OPT3001    opt3001_info;
-  extern tft_info_t tft_info;
   static float prev_lux = 0;
 
   if (opt3001_info.lux != prev_lux) {
@@ -575,6 +632,26 @@ static void display_lux()
   prev_lux = opt3001_info.lux;
   //delay(SHORT_DELAY);
 }
+
+/* ************************************************************************** */ 
+
+static void display_accum()
+{
+  extern as7262_info_t as7262_info;
+ 
+  tft.fillScreen(ST7735_BLACK);
+  // Display the "Accumula" sttring in TFT
+  tft.setTextSize(3); // 3x the original font
+  tft.setCursor(tft.height()/3, 0);
+  tft.setTextColor(ST7735_WHITE, ST7735_BLACK);
+  tft.print("Accumula");
+  // Display the accumulator value string in TFT
+  tft.setCursor(tft.height()/3, tft.width()/3);
+  tft.setTextColor(ST7735_YELLOW, ST7735_BLACK);
+  tft.print(as7262_info.accLimit); tft.print("x");
+  delay(SHORT_DELAY);
+}
+
 
 /* ************************************************************************** */ 
 
@@ -614,7 +691,7 @@ static void format_as7262_msg(String& line)
   // Relative timestamp
   line += String(millis()); line += String(',');
   // Accumulated readings (fixed to 1)
-  line += String(1); line += String(',');
+  line += String(as7262_info.accLimit); line += String(',');
   // AS7262 Exposure time in milliseconds
   line += String(as7262_info.exposure*EXPOSURE_UNIT*2,1); line += String(',');
   // AS7262 Gain
@@ -623,12 +700,12 @@ static void format_as7262_msg(String& line)
   line += String(as7262_info.temperature); line += String(',');
   // AS7262 calibrated values
   for (int i=0; i< 5; i++) {
-      line += String(as7262_info.calibratedValues[i], 2); 
-      line += String(','); line += String(as7262_info.rawValues[i]); 
+      line += String(as7262_info.latched.calibrated[i], 2); 
+      line += String(','); line += String(as7262_info.latched.raw[i]); 
       line += String(',');
   }
-  line += String(as7262_info.calibratedValues[5], 2); 
-  line += String(','); line += String(as7262_info.rawValues[5]);
+  line += String(as7262_info.latched.calibrated[5], 2); 
+  line += String(','); line += String(as7262_info.latched.raw[5]);
   // End JSON sequence
   line += String("]\r\n"); 
 }
@@ -640,7 +717,7 @@ static void format_as7262_msg(String& line)
 static void act_idle()
 {
   extern Adafruit_BluefruitLE_SPI ble;
-  extern byte toSerial;
+  extern bool toSerial;
 
   if (read_as7262_sensor()) {
     String line;
@@ -663,14 +740,14 @@ static void act_idle()
 
 /* ------------------------------------------------------------------------- */ 
 
-static void act_exposure_enter()
+static void act_expos_in()
 { 
   display_exposure();
 }
 
 /* ------------------------------------------------------------------------- */ 
 
-static void act_exposure_up()
+static void act_expos_up()
 {
   extern as7262_info_t   as7262_info;
   extern Adafruit_AS726x ams;
@@ -683,7 +760,7 @@ static void act_exposure_up()
 
 /* ------------------------------------------------------------------------- */ 
 
-static void act_exposure_down()
+static void act_expos_down()
 {
   extern as7262_info_t   as7262_info;
   extern Adafruit_AS726x ams;
@@ -697,14 +774,14 @@ static void act_exposure_down()
 
 /* ------------------------------------------------------------------------- */ 
 
-static void act_baklight_enter()
+static void act_light_in()
 { 
   display_backlight();
 }
 
 /* ------------------------------------------------------------------------- */ 
 
-static void act_baklight_up()
+static void act_light_up()
 {
   extern Adafruit_miniTFTWing ss;
   extern tft_info_t           tft_info;
@@ -718,7 +795,7 @@ static void act_baklight_up()
 
 /* ------------------------------------------------------------------------- */ 
 
-static void act_baklight_down()
+static void act_light_down()
 {
   extern Adafruit_miniTFTWing ss;
   extern tft_info_t           tft_info;
@@ -732,7 +809,7 @@ static void act_baklight_down()
 
 /* ------------------------------------------------------------------------- */ 
 
-static void act_gain_enter()
+static void act_gain_in()
 { 
   display_gain();
 }
@@ -763,7 +840,7 @@ static void act_gain_down()
 
 /* ------------------------------------------------------------------------- */ 
 
-static void act_spectrum_enter()
+static void act_spect_in()
 {
   act_idle();
   display_bars(true);
@@ -772,7 +849,7 @@ static void act_spectrum_enter()
 
 /* ------------------------------------------------------------------------- */ 
 
-static void act_spectrum_idle()
+static void act_spect_idle()
 {
   act_idle();
   display_bars(false);
@@ -788,11 +865,9 @@ static void act_lux_idle()
 
 /* ------------------------------------------------------------------------- */ 
 
-static void act_lux_enter()
+static void act_lux_in()
 {
   
-  extern tft_info_t           tft_info;
-
   tft.fillScreen(ST7735_BLACK);
   tft.setTextSize(3);
   tft.setCursor(0,0);
@@ -804,6 +879,27 @@ static void act_lux_enter()
 
 /* ------------------------------------------------------------------------- */ 
 
+static void act_accum_in()
+{
+  display_accum();
+}
+
+static void act_accum_up()
+{
+  extern as7262_info_t   as7262_info;
+
+  as7262_info.accLimit = min(64, 2*as7262_info.accLimit);
+  display_accum();
+}
+
+static void act_accum_down()
+{
+  extern as7262_info_t   as7262_info;
+
+  as7262_info.accLimit = max(1, as7262_info.accLimit >> 1);
+  display_accum();
+
+}
 
 /* ------------------------------------------------------------------------- */ 
 
@@ -857,6 +953,10 @@ static void setup_as7262()
   as7262_info.exposure = 50;
   // continuous conversion time is already done by default in the ams driver
   //ams.setConversionType(MODE_2);
+  // Reset accumulated readings
+  as7262_info.accLimit = 1;
+  as7262_info.accCount = 0;
+  as7262_zero(&as7262_info.accumulated);
   Serial.println(F("ok"));
 }
 
@@ -926,13 +1026,13 @@ void setup()
   setup_as7262();
   setup_opt3001();
   setup_tft(); 
-  act_lux_enter();
+  act_lux_in();
 }
 
 
 void loop() 
 {
-  static uint8_t  screen = GUI_LUX_SCREEN; // The current screen
+  static uint8_t  screen = GUI_LUX_SCR; // The current screen
   menu_action_t   action;
   uint8_t         event;
  
