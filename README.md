@@ -23,7 +23,7 @@ The main features of this release are:
 
 ## Limitations
 
-As the Arduino Nano flash memory is almost full (99%), we cannot include features like:
+As the Arduino Nano flash memory is almost full (99,92%), we cannot include features like:
 
 * commands via BT or serial port to configure the device in the same way as done from the TFT desplay.
 * a better menu system
@@ -70,7 +70,7 @@ Readings are sent in a compact but still valid JSON format as a sequence of valu
 
 Example:
 ```
-["O",18,16920,800,96.48]
+["O",18,16920,1,800,96.48]
 ```
 The decoding of such message is shown:
 
@@ -110,7 +110,7 @@ The decoding of such message is shown:
 
 Example:
 ```
-["A",45,16869,280.0,64,27,49.10,42,65.76,54,167.21,150,100.00,105,127.00,126,56.35,67]
+["A",45,16869,1,280.0,64,27,49.10,42,65.76,54,167.21,150,100.00,105,127.00,126,56.35,67]
 ```
 The decoding of such message is shown:
 
