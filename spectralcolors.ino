@@ -266,10 +266,6 @@ ClosedCube_OPT3001 opt3001;
 OPT3001        opt3001_info;
 OPT3001_Config config;
 
-// Message sequence numbers for AS7262 and OPT3001 data
-unsigned long seqOPT;
-unsigned long seqAS;
-
 // enable readings to serial port 
 bool toSerial = false;
 
@@ -677,7 +673,7 @@ static void display_accum()
 static void format_opt3001_msg(String& line)
 {
   extern OPT3001       opt3001_info;
-  extern unsigned long seqOPT;
+  static unsigned long seqOPT = 0;
  
   // Start JSON sequence
   line += String("[\"O\",");
@@ -700,8 +696,8 @@ static void format_opt3001_msg(String& line)
 static void format_as7262_msg(String& line)
 {
   extern as7262_info_t as7262_info;
-  extern unsigned long seqAS; // Tx sequence number
   extern const char*   GainTable[];
+  static unsigned long seqAS = 0; // Tx sequence number
  
    // Start JSON sequence
   line += String("[\"A\",");
