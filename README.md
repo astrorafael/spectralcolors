@@ -35,11 +35,11 @@ A future release based on the pin-to-pin compatible [Arduino Nano Every](https:/
 
 * Apparently, the *Adafruit Mini Color TFT with Joystick FeatherWing* works only on 3.3V, but its inputs are 5V-tolerant although this is not documented.
 
-3.3V power supply is currently taken from the Arduino Nano board itself. In fact, it is the USB-to-Serial converter which generates this voltage, and apparently only 50mA are only available.
+3.3V power supply is *not taken from the Arduino Nano* board itself. In fact, it is the USB-to-Serial converter which generates this voltage, and apparently only 50mA are only available.
 
 * All other breakout modules have internal level shifters for the data lines and/or regulated down-converters from %V to 3.3V. In particular:
 - a pad in back of the Bluetooth LE breakout can deliver 250mA @ 3.3V.
-- the 3V3 pin of the AS7262 board can deliver 100mA @ 3.3V.
+- the 3V3 pin of the AS7262 board can deliver 100mA @ 3.3V. ***This is where we take the 3.3V from.***
 
 ## I2C Pull-up resistor
 
