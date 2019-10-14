@@ -182,7 +182,7 @@ So, the built-in LED becomes unusable after miniTFTWing initialization
 #define EXPOSURE_UNIT 2.8
 
 // maximun value expected fro the AS7262 chip
-#define SENSOR_MAX 5000
+#define AS7262_SENSOR_MAX 5000
 
 // ---------------
 // Other constants
@@ -560,7 +560,7 @@ static void display_bars(bool refresh)
 
   // see if we really have to redraw the bars
   for(int i=0; i<AS726x_NUM_CHANNELS; i++) {
-    height[i][curBuf] = map(as7262_info.latched.calibrated[i], 0, SENSOR_MAX, 0, tft.height());
+    height[i][curBuf] = map(as7262_info.latched.calibrated[i], 0, AS7262_SENSOR_MAX, 0, tft.height());
     if (height[i][curBuf] != height[i][curBuf  ^ 0x01]) {
       refresh = true;
     }
