@@ -478,6 +478,8 @@ static void as7262_copy(as7262_readings_t* dst, as7262_readings_t* src)
 
 static void as7262_zero(as7262_readings_t* src)
 {
+  extern as7262_info_t as7262_info;
+  as7262_info.accCount = 0; // This is placed here by convenience ...
   for (int i=0; i<AS726x_NUM_CHANNELS; i++) {
     src->raw[i]        = 0;
     src->calibrated[i] = 0.0;
@@ -684,7 +686,7 @@ static void format_opt3001_msg(String& line)
 }
 
 /* ************************************************************************** */ 
-
+ 
 static void format_as7262_msg(String& line)
 {
   extern as7262_info_t as7262_info;
@@ -898,6 +900,7 @@ static void act_accum_up()
   extern as7262_info_t   as7262_info;
 
   as7262_info.accLimit = min(MAX_ACCUM, 2*as7262_info.accLimit);
+  as7262_zero(&as7262_info.accumulated);
   display_accum();
 }
 
@@ -908,6 +911,7 @@ static void act_accum_down()
   extern as7262_info_t   as7262_info;
 
   as7262_info.accLimit = max(1, as7262_info.accLimit >> 1);
+  as7262_zero(&as7262_info.accumulated);
   display_accum();
 
 }
@@ -966,7 +970,6 @@ static void setup_as7262()
   //ams.setConversionType(MODE_2);
   // Reset accumulated readings
   as7262_info.accLimit = 1;
-  as7262_info.accCount = 0;
   as7262_zero(&as7262_info.accumulated);
   Serial.println(F("ok"));
 }
