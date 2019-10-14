@@ -940,12 +940,12 @@ static void setup_ble()
   Serial.print(F("Bluefruit SPI... "));
   
   if ( !ble.begin(VERBOSE_MODE) ) {
-    error(F("Couldn't find Bluefruit!"));
+    error(F("could not be found!"));
   }
 
   if ( FACTORYRESET_ENABLE && ! ble.factoryReset() ) {
     /* Perform a factory reset to make sure everything is in a known state */
-    error(F("Couldn't factory reset Bluefruit!"));
+    error(F("could not be factory reset!"));
   }
 
   /* Disable command echo from Bluefruit */
@@ -970,7 +970,7 @@ static void setup_as7262()
   Serial.print(F("AS7262... "));
   // finds the 6 channel chip
   if(!ams.begin()){
-    error(F("could not connect to AS7262!"));
+    error(F("could not be found!"));
   }
   // as initialized by the AS7262 library
   // Note that in MODE 2, the exposure time is actually doubled
@@ -995,14 +995,10 @@ static void setup_tft()
   Serial.print(F("SeeSaw... "));
   // acknowledges the Seesaw chip before sending commands to the TFT display
   if (!ss.begin()) {
-    error(F("seesaw couldn't be found!"));
+    error(F("could not be found!"));
   }
-
-  Serial.print(F("ok"));
-  Serial.print(F(", ver: "));
-  Serial.println(ss.getVersion(), HEX); 
+  Serial.println(F("ok")); 
  
-
   ss.tftReset();   // reset the display via a seesaw command
   ss.setBacklight(TFTWING_BACKLIGHT_ON/2);  // turn on the backlight
   tft_info.backlight = 50;
@@ -1031,7 +1027,7 @@ static void setup_opt3001()
 
   OPT3001_ErrorCode errorConfig = opt3001.writeConfig(config);
   if (errorConfig != NO_ERROR) {
-    error(F("OPT3001 config error!"));
+    error(F("config error!"));
   }
   Serial.println(F("ok"));
 }
