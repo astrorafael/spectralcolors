@@ -469,9 +469,11 @@ static uint8_t opt3001_read()
 
 /* ************************************************************************** */ 
 
-static void as7262_copy(as7262_readings_t* dst, as7262_readings_t* src)
+static void as7262_latch()
 {
-  *dst = *src;
+  extern as7262_info_t as7262_info;
+  
+  as7262_info.latched = as7262_info.accumulated;
 }
 
 /* ************************************************************************** */ 
@@ -480,21 +482,29 @@ static void as7262_zero()
 {
   extern as7262_info_t as7262_info;
   as7262_info.accCount = 0; // This is placed here by convenience ...
-  as7262_readings_t* src = &as7262_info.accumulated;
+  
   for (int i=0; i<AS726x_NUM_CHANNELS; i++) {
-    src->raw[i]        = 0;
-    src->calibrated[i] = 0.0;
+    as7262_info.accumulated.raw[i]        = 0;
+    as7262_info.accumulated.calibrated[i] = 0.0;
   }
 }
 
 /* ************************************************************************** */ 
 
-static void as7262_accumulate(as7262_readings_t* dst, as7262_readings_t* src)
+static bool as7262_accumulate(as7262_readings_t* src)
 {
+  extern as7262_info_t as7262_info;
+  
+  // Accumulate readinggs
   for (int i=0; i<AS726x_NUM_CHANNELS; i++) {
-    dst->raw[i]        += src->raw[i];
-    dst->calibrated[i] += src->calibrated[i];
+    as7262_info.accumulated.raw[i]        += src->raw[i];
+    as7262_info.accumulated.calibrated[i] += src->calibrated[i];
   }
+  // Update accumulation count
+  as7262_info.accCount += 1;
+  as7262_info.accCount &= as7262_info.accLimit-1;
+  return (as7262_info.accCount == 0);
+
 }
 
 /* ************************************************************************** */ 
@@ -504,18 +514,17 @@ static uint8_t as7262_read()
   extern Adafruit_AS726x ams;
   extern as7262_info_t as7262_info;
   as7262_readings_t current;
+  bool done;
 
   uint8_t dataReady = ams.dataReady();
   if(dataReady) {
     ams.readCalibratedValues(current.calibrated);
     ams.readRawValues(current.raw);
     as7262_info.temperature = ams.readTemperature();
-    as7262_accumulate(&as7262_info.accumulated, &current);
-    as7262_info.accCount += 1;
-    as7262_info.accCount &= as7262_info.accLimit-1;
-    if (as7262_info.accCount == 0) {
-      as7262_copy(&as7262_info.latched, &as7262_info.accumulated);
-      as7262_zero();
+    done = as7262_accumulate(&current); 
+    if (done) {
+      as7262_latch(); // latch accumulated value for display and Tx
+      as7262_zero();  // clears readings accumulator
     } else {
       dataReady = 0;  // still accumulating readings ....
     }
