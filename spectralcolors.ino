@@ -474,11 +474,11 @@ static void as7262_latch()
 
 /* ************************************************************************** */ 
 
-static void as7262_zero()
+static void as7262_clear_accum()
 {
   extern as7262_info_t as7262_info;
-  as7262_info.accCount = 0; // This is placed here by convenience ...
-  
+
+  as7262_info.accCount = 0; // reset accum counter
   for (int i=0; i<AS726x_NUM_CHANNELS; i++) {
     as7262_info.accumulated.raw[i]        = 0;
     as7262_info.accumulated.calibrated[i] = 0.0;
@@ -496,7 +496,7 @@ static bool as7262_accumulate(as7262_readings_t* src)
     as7262_info.accumulated.raw[i]        += src->raw[i];
     as7262_info.accumulated.calibrated[i] += src->calibrated[i];
   }
-  // Update accumulation count
+  // Update accumulation counter, with wrapparound
   as7262_info.accCount += 1;
   as7262_info.accCount &= as7262_info.accLimit-1;
   return (as7262_info.accCount == 0);
@@ -509,6 +509,7 @@ static uint8_t as7262_read()
 {
   extern Adafruit_AS726x ams;
   extern as7262_info_t as7262_info;
+
   as7262_readings_t current;
   bool done;
 
@@ -520,7 +521,7 @@ static uint8_t as7262_read()
     done = as7262_accumulate(&current); 
     if (done) {
       as7262_latch(); // latch accumulated value for display and Tx
-      as7262_zero();  // clears readings accumulator
+      as7262_clear_accum();  // clears readings accumulator
     } else {
       dataReady = 0;  // still accumulating readings ....
     }
@@ -535,6 +536,7 @@ static void display_bars(bool refresh)
 {
   extern as7262_info_t   as7262_info;
   extern Adafruit_ST7735 tft;
+
   uint16_t barWidth = (tft.width()) / AS726x_NUM_CHANNELS;
 
   // array of predefined bar colors
@@ -552,7 +554,6 @@ static void display_bars(bool refresh)
   // Display bar buffers, used to minimize redrawings
   static uint16_t height[AS726x_NUM_CHANNELS][2];
   static uint8_t  curBuf = 0;                     // current buffer 
-
 
   // see if we really have to redraw the bars
   for(int i=0; i<AS726x_NUM_CHANNELS; i++) {
@@ -906,7 +907,7 @@ static void act_accum_up()
   extern as7262_info_t   as7262_info;
 
   as7262_info.accLimit = min(MAX_ACCUM, 2*as7262_info.accLimit);
-  as7262_zero();
+  as7262_clear_accum();
   display_accum();
 }
 
@@ -916,8 +917,8 @@ static void act_accum_down()
 {
   extern as7262_info_t   as7262_info;
 
-  as7262_info.accLimit = max(1, as7262_info.accLimit >> 1);
-  as7262_zero();
+  as7262_info.accLimit = max(1, as7262_info.accLimit/2);
+  as7262_clear_accum();
   display_accum();
 
 }
@@ -976,7 +977,7 @@ static void setup_as7262()
   //ams.setConversionType(MODE_2);
   // Reset accumulated readings
   as7262_info.accLimit = 1;
-  as7262_zero();
+  as7262_clear_accum();
   Serial.println(F("ok"));
 }
 
