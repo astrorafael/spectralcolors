@@ -181,7 +181,7 @@ So, the built-in LED becomes unusable after miniTFTWing initialization
 // Added lux offset to take into account attenuation
 // by diffusion filter
 
-#ifndef 
+#ifndef OPT3001_OFFSET
 #define OPT3001_OFFSET 0.0
 #endif
 
