@@ -175,6 +175,17 @@ So, the built-in LED becomes unusable after miniTFTWing initialization
 #define PINK    0xF8FF
 
 // ---------------------
+// OPT3001  values
+// ---------------------
+
+// Added lux offset to take into account attenuation
+// by diffusion filter
+
+#ifndef 
+#define OPT3001_OFFSET 0.0
+#endif
+
+// ---------------------
 // AS7262 default values
 // ---------------------
 
@@ -643,7 +654,7 @@ static void display_lux()
     // refresh display value
     tft.setCursor(0, tft.width()/3);
     tft.setTextColor(ST7735_YELLOW, ST7735_BLACK);
-    tft.print(opt3001_info.lux,2); 
+    tft.print(opt3001_info.lux+OPT3001_OFFSET,2); 
   }
   prev_lux = opt3001_info.lux;
   //delay(SHORT_DELAY);
@@ -687,7 +698,7 @@ static void format_opt3001_msg(String& line)
   // Exposure time in milliseconds (fixed to 800)
   line += String("800"); line += String(',');
   // OPT 3001 lux readings
-  line += String(opt3001_info.lux, 2);
+  line += String(opt3001_info.lux+OPT3001_OFFSET, 2);
   // End JSON sequence
   line += String("]\r\n"); 
 }
