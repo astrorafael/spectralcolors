@@ -972,11 +972,12 @@ static void setup_as7262()
   // as initialized by the AS7262 library
   // Note that in MODE 2, the exposure time is actually doubled
   as7262_info.gain     = GAIN_64X;
-  as7262_info.exposure = 50;
+  as7262_info.exposure = 255;
+  ams.setIntegrationTime(as7262_info.exposure);
   // continuous conversion time is already done by default in the ams driver
   //ams.setConversionType(MODE_2);
   // Reset accumulated readings
-  as7262_info.accLimit = 1;
+  as7262_info.accLimit = 16;
   as7262_clear_accum();
   Serial.println(F("ok"));
 }
