@@ -39,7 +39,7 @@
                    \
 
                    /
-                   |   3.3V    <====> 3.3V 
+                   |   N/C            3.3V (from 3.3V bus)
               Pwr  |   GND     <====> GND
                    \
 
@@ -53,8 +53,9 @@
                    \
 
                    /
-                   |   3.3V    <====> VIN 
+                   |   5V       ====> VIN 
               Pwr  |   GND     <====> GND
+                   |   N/C            3.3V Bus (provides 3.3V)
                    \
 
               Arduino Nano        OPT3001 Sensor
@@ -66,8 +67,8 @@
                    \
 
                    /
-                   |   3.3V    <====> VDD 
-              Pwr  |   GND     <====> GND
+                   |   N/C           VDD (from 3.3V bus)
+              Pwr  |   GND    <====> GND
                    \
 
               Arduino Nano        miniTFTWing
@@ -85,7 +86,7 @@
                    \
 
                    /
-                   |   3.3V    <====> 3.3V 
+                   |   N/C            3.3V (from 3.3V bus)
               Pwr  |   GND     <====> GND
                    \
 
@@ -938,6 +939,13 @@ static void act_accum_down()
 /*                              SETUP FUNCTIONS                              */
 /* ************************************************************************** */ 
 
+static void setup_serial()
+{
+  Serial.begin(115200);
+  while(!Serial); // waits till hw ready in some Arduinos. Tight loo
+  Serial.println(F("Sketch version: " GIT_VERSION));
+}
+
 static void setup_ble()
 {
   extern Adafruit_BluefruitLE_SPI ble;
@@ -1044,9 +1052,7 @@ static void setup_opt3001()
 
 void setup() 
 {
-  Serial.begin(115200);
-  while(!Serial);
-  Serial.println(F("Sketch version: " GIT_VERSION));
+  setup_serial();
   setup_ble();
   setup_as7262();
   setup_opt3001();
