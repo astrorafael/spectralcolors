@@ -946,6 +946,8 @@ static void setup_serial()
   Serial.println(F("Sketch version: " GIT_VERSION));
 }
 
+/* ************************************************************************** */ 
+
 static void setup_ble()
 {
   extern Adafruit_BluefruitLE_SPI ble;
