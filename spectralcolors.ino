@@ -223,7 +223,7 @@ const char* GainTable[] = {
 /*                        CUSTOM CLASES & DATA TYPES                          */
 /* ************************************************************************** */ 
 typedef struct {
-    float     calibrated[AS726x_NUM_CHANNELS];
+    // float     calibrated[AS726x_NUM_CHANNELS];
     uint16_t  raw[AS726x_NUM_CHANNELS];
 } as7262_readings_t;
 
@@ -490,7 +490,7 @@ static void as7262_clear_accum()
   as7262_info.accCount = 0; // reset accum counter
   for (int i=0; i<AS726x_NUM_CHANNELS; i++) {
     as7262_info.accumulated.raw[i]        = 0;
-    as7262_info.accumulated.calibrated[i] = 0.0;
+    // as7262_info.accumulated.calibrated[i] = 0.0;
   }
 }
 
@@ -503,7 +503,7 @@ static bool as7262_accumulate(as7262_readings_t* src)
   // Accumulate readinggs
   for (int i=0; i<AS726x_NUM_CHANNELS; i++) {
     as7262_info.accumulated.raw[i]        += src->raw[i];
-    as7262_info.accumulated.calibrated[i] += src->calibrated[i];
+    // as7262_info.accumulated.calibrated[i] += src->calibrated[i];
   }
   // Update accumulation counter, with wrapparound
   as7262_info.accCount += 1;
@@ -524,7 +524,7 @@ static uint8_t as7262_read()
 
   uint8_t dataReady = ams.dataReady();
   if(dataReady) {
-    ams.readCalibratedValues(current.calibrated);
+    // ams.readCalibratedValues(current.calibrated);
     ams.readRawValues(current.raw);
     as7262_info.temperature = ams.readTemperature();
     done = as7262_accumulate(&current); 
@@ -566,7 +566,7 @@ static void display_bars(bool refresh)
 
   // see if we really have to redraw the bars
   for(int i=0; i<AS726x_NUM_CHANNELS; i++) {
-    height[i][curBuf] = map(as7262_info.latched.calibrated[i], 0, AS7262_SENSOR_MAX, 0, tft.height());
+    height[i][curBuf] = map(as7262_info.latched.raw[i], 0, AS7262_SENSOR_MAX, 0, tft.height());
     if (height[i][curBuf] != height[i][curBuf  ^ 0x01]) {
       refresh = true;
     }
@@ -725,12 +725,11 @@ static void format_as7262_msg(String& line)
   line += String(as7262_info.temperature); line += String(',');
   // AS7262 calibrated values
   for (int i=0; i< 5; i++) {
-      line += String(as7262_info.latched.calibrated[i], 2); 
-      line += String(','); line += String(as7262_info.latched.raw[i]); 
-      line += String(',');
+      // line += String(as7262_info.latched.calibrated[i], 2); line += String(','); 
+      line += String(as7262_info.latched.raw[i]); line += String(',');
   }
-  line += String(as7262_info.latched.calibrated[5], 2); 
-  line += String(','); line += String(as7262_info.latched.raw[5]);
+  // line += String(as7262_info.latched.calibrated[5], 2); line += String(','); 
+  line += String(as7262_info.latched.raw[5]);
   // End JSON sequence
   line += String("]\r\n"); 
 }

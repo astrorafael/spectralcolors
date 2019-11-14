@@ -94,42 +94,30 @@ The decoding of such message is shown:
 | 4     | float  |   ms  | Sensor exposure time (individual reading). | 
 | 5     | float  |   -   | Sensor gain. |
 | 6     | int    |  ºC   | AS7262 internal temperature. |
-| 7     | float  | counts/μW/cm2 | Violet (450nm) calibrated value. |
-| 8     | int    | counts/μW/cm2 | Violet (450nm) raw value. |
-| 9     | float  | counts/μW/cm2 | Blue (500nm) calibrated value. |
-| 10    | int    | counts/μW/cm2 | Blue (500nm) raw value. |
-| 11    | float  | counts/μW/cm2 | Green (550nm) calibrated value. |
-| 12    | int    | counts/μW/cm2 | Green (550nm) raw value. |
-| 13    | float  | counts/μW/cm2 | Yellow (570nm) calibrated value. |
-| 14    | int    | counts/μW/cm2 | Yellow (570nm) raw value. |
-| 15    | float  | counts/μW/cm2 | Orange (600nm) calibrated value. |
-| 16    | int    | counts/μW/cm2 | Orange (600nm) raw value. |
-| 17    | float  | counts/μW/cm2 | Red (650nm) calibrated value. |
-| 18    | int    | counts/μW/cm2 | Red (650nm) raw value. |
+| 7     | int    | counts/μW/cm2 | Violet (450nm) raw value. |
+| 8     | int    | counts/μW/cm2 | Blue (500nm) raw value. |
+| 9     | int    | counts/μW/cm2 | Green (550nm) raw value. |
+| 10    | int    | counts/μW/cm2 | Yellow (570nm) raw value. |
+| 11    | int    | counts/μW/cm2 | Orange (600nm) raw value. |
+| 12    | int    | counts/μW/cm2 | Red (650nm) raw value. |
 
 
 Example:
 ```
-["A",45,16869,1,280.0,64,27,49.10,42,65.76,54,167.21,150,100.00,105,127.00,126,56.35,67]
+["A",45,16869,1,280.0,64,27,42,54,150,105,126,67]
 ```
 The decoding of such message is shown:
 
-* "A" => AS7262 sensor
-* 45 => Sequence number
+* "A"   => AS7262 sensor
+* 45    => Sequence number
 * 16869 => milliseconds since power on
-* 1 => Accumulated readings (1=only one)
+* 1     => Accumulated readings (1=only one reading)
 * 280.0 => AS7262 exposure time (ms)
-* 64 => AS7262 gain
-* 27 => AS7262 temperature (ºC)
-* 49.10 => Violet (calibrated)
-* 42 => Violet (raw) 65.76 => Blue (calibrated)
-* 54 => Blue (raw)
-* 167.21 => Green (calibrated)
-* 150 => Green (raw)
-* 100.00 => Yellow (calibrated)
-* 105 => Yellow (raw)
-* 127.00 => Orange (calibrated)
-* 126 => Orange (raw)
-* 56.35 => Red (calibrated)
-* 67 => Red (raw)
-
+* 64    => AS7262 gain
+* 27    => AS7262 temperature (ºC)
+* 42    => Violet (raw) 
+* 54    => Blue (raw)
+* 150   => Green (raw)
+* 105   => Yellow (raw)
+* 126   => Orange (raw)
+* 67    => Red (raw)
