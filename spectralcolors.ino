@@ -406,10 +406,10 @@ static void error(const  __FlashStringHelper* err)
 
 /* ************************************************************************** */ 
 
-static void dbg_fsm(screen, event)
+static void dbg_fsm(uint8_t state, uint8_t event)
 {
   if (event != GUI_NO_EVENT) {
-
+    Serial.print(F("State: "));  Serial.print(state); Serial.print(F(" Event: ")); Serial.println(event);
   }
 }
 
