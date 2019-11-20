@@ -305,6 +305,8 @@ enum gui_state {
   GUI_MAX_STATES
 };
 
+uint8_t  screen; // The current screen
+
 // --------------------------------------------
 // State Machine Actions (Forward declarations)
 // --------------------------------------------
@@ -401,6 +403,15 @@ static void error(const  __FlashStringHelper* err)
   while(1) ;
 }
 #endif
+
+/* ************************************************************************** */ 
+
+static void dbg_fsm(screen, event)
+{
+  if (event != GUI_NO_EVENT) {
+
+  }
+}
 
 /* ************************************************************************** */ 
 
@@ -1047,29 +1058,40 @@ static void setup_opt3001()
 }
 
 /* ************************************************************************** */ 
+
+static void setup_fsm()
+{
+   screen = GUI_LUX_SCR;
+   act_lux_in();
+}
+
+/* ************************************************************************** */ 
 /*                                MAIN SECTION                               */
 /* ************************************************************************** */ 
 
 
 void setup() 
 {
+#ifdef ARDUINO_AVR_NANO_EVERY
+  delay(1000); // The Nano Every needs a reasonable start delay so that all messages are shown
+#endif
   setup_serial();
   setup_ble();
   setup_as7262();
   setup_opt3001();
   setup_tft(); 
-  act_lux_in();
+  setup_fsm();
 }
 
 
 void loop() 
 {
-  static uint8_t  screen = GUI_LUX_SCR; // The current screen
+  extern uint8_t  screen; // The current screen
   menu_action_t   action;
   uint8_t         event;
  
   event  = read_buttons();
-  //Serial.print(F("State: "));  Serial.print(screen); Serial.print(F(" Event: ")); Serial.println(event);
+  // dbg_fsm(screen, event);
   action = get_action(screen, event);
   screen = get_next_screen(screen, event);
   action();  // execute the action
