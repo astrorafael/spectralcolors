@@ -230,6 +230,7 @@ typedef struct {
 typedef struct {
   as7262_readings_t accumulated;    // Accumulated values from several readings
   as7262_readings_t latched;        // Latched values once it has been accumulated
+  unsigned long     tstamp;         // timestamp as given by millis() function
   uint8_t           gain;           // device gain multiplier
   uint8_t           exposure;       // device integration time in steps of 2.8 ms
   uint8_t           temperature;    // device internal temperature
@@ -274,6 +275,7 @@ ClosedCube_OPT3001 opt3001;
 // OPT3001 read sensor data
 OPT3001        opt3001_info;
 OPT3001_Config config;
+unsigned long  opt3001_tstamp;         // timestamp as given by millis() function
 
 // enable readings to serial port 
 bool toSerial = false;
@@ -478,6 +480,7 @@ static uint8_t opt3001_read()
 
   if (dataReady) {
     opt3001_info = opt3001.readResult();
+    opt3001_tstamp = millis();
   }
   return dataReady;
 }
@@ -540,6 +543,7 @@ static uint8_t as7262_read()
     as7262_info.temperature = ams.readTemperature();
     done = as7262_accumulate(&current); 
     if (done) {
+      as7262_info.tstamp = millis();
       as7262_latch(); // latch accumulated value for display and Tx
       as7262_clear_accum();  // clears readings accumulator
     } else {
@@ -701,7 +705,7 @@ static void format_opt3001_msg(String& line)
   // Sequence number
   line += String(seqOPT++); line += String(',');
   // Relative timestamp
-  line += String(millis()); line += String(',');
+  line += String(opt3001_tstamp); line += String(',');
   // Accumulated readings (fixed to 1)
   line += String(1); line += String(',');
   // Exposure time in milliseconds (fixed to 800)
@@ -725,7 +729,7 @@ static void format_as7262_msg(String& line)
   // Sequence number
   line += String(seqAS++);  line += String(',');
   // Relative timestamp
-  line += String(millis()); line += String(',');
+  line += String(as7262_info.tstamp); line += String(',');
   // Accumulated readings (fixed to 1)
   line += String(as7262_info.accLimit); line += String(',');
   // AS7262 Exposure time in milliseconds

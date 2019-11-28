@@ -17,8 +17,6 @@
  - Debug to serial ('x' and 'z') option?
 
 ## Notes
-- milis() timestamp at the end of the measurement, not in the transmission
-- sequence number in the transmission. Its purpose is to detect transmission errors.
 - In Hold mode, repeat the last measurement every second more or less. This means same milis() value but different sequence numbers
   Do the same for Luxometer.
 
