@@ -417,6 +417,20 @@ static void dbg_fsm(uint8_t state, uint8_t event)
 
 /* ************************************************************************** */ 
 
+static void dbg_heartbeat()
+{
+  extern bool toSerial;
+  static int divider = 0;
+
+  divider += 1;
+  divider &= 1023; // (2^N - 1)
+  if (divider == 0 && toSerial == false) {
+    Serial.println('*');
+  }
+}
+
+/* ************************************************************************** */ 
+
 // Reads miniTFTWing buttons & joystick and produces events
 static uint8_t read_buttons()
 {
@@ -775,6 +789,8 @@ static void act_idle()
     if(toSerial) 
       Serial.print(line);
   }
+
+  dbg_heartbeat();
 }
 
 /* ------------------------------------------------------------------------- */ 
