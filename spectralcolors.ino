@@ -204,7 +204,7 @@ So, the built-in LED becomes unusable after miniTFTWing initialization
 #define EXPOSURE_STEPS 20 
 
 // backlight steps in a single button up/down click
-#define BACKLIGHT_STEPS 00 
+#define BACKLIGHT_STEPS 10 
 
 // Short delay in screens (milliseconds)
 #define SHORT_DELAY 200
@@ -635,7 +635,7 @@ static void display_data()
 {
   extern tft_info_t tft_info;
   
-  tft.setTextSize(2); // 3x the original font
+  tft.setTextSize(2); // 2x the original font
   for(int i=0; i<AS726x_NUM_CHANNELS; i++) {
      uint16_t h0;
      uint16_t w0;
@@ -863,7 +863,8 @@ static void act_light_up()
 
   backlight = tft_info.backlight + BACKLIGHT_STEPS;
   tft_info.backlight = constrain(backlight, 10, 100);
-  ss.setBacklight(65535-(tft_info.backlight*65535)/100); 
+  ss.setBacklight(65535-(tft_info.backlight*65535)/100);
+  delay(SHORT_DELAY); 
 }
 
 /* ------------------------------------------------------------------------- */ 
@@ -877,6 +878,7 @@ static void act_light_down()
   backlight = tft_info.backlight - BACKLIGHT_STEPS;
   tft_info.backlight = constrain(backlight, 10, 100);
   ss.setBacklight(65535-(tft_info.backlight*65535)/100); 
+  delay(SHORT_DELAY);
 }
 
 /* ------------------------------------------------------------------------- */ 
