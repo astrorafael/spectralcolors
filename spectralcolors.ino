@@ -311,7 +311,7 @@ enum gui_events {
 enum gui_state {
   GUI_GAIN_SCR = 0,
   GUI_EXPOS_SCR,
-  GUI_SPECT_SCR,
+  GUI_BARS_SCR,
   GUI_DATA_SCR,
   GUI_LUX_SCR,
   GUI_ACCUM_SCR,
@@ -358,8 +358,8 @@ static void act_light_down(); // Dimming the backlight
 static void act_expos_in();   // Entering the AS7262 exposure time screen
 static void act_expos_up();   // Increase the AS7262 exposure time
 static void act_expos_down(); // Decrease the AS7262 exposure time
-static void act_spect_in();   // Display the spectrum bars
-static void act_spect_idle(); // Idle activity when in the spectrum bars screen
+static void act_bars_in();   // Display the spectrum bars
+static void act_bars_idle(); // Idle activity when in the spectrum bars screen
 static void act_data_in();    // Display the spectrum as data lines
 static void act_data_idle();  // Idle activity when in the data lines screen
 static void act_lux_in();     // Entering the luxometer screen
@@ -375,16 +375,17 @@ static void act_hold();       // Toggle Hold Mode
 static menu_action_t get_action(uint8_t state, uint8_t event)
 {
   static const menu_action_t menu_action[][GUI_MAX_STATES] PROGMEM = {
-    //  GAIN SCREEN   | EXPOSURE SCR  |  SPECTRUM SCR  |   DATA_SCR   |  LUX SCREEN   | ACCUM SCREEN  |
     //----------------+---------------+----------------+--------------+---------------+---------------+
-    { act_idle,       act_idle,        act_spect_idle,  act_data_idle,  act_lux_idle,   act_idle       }, // GUI_NO_EVENT
+    //  GAIN SCREEN   | EXPOSURE SCR  |    BARS SCR    |   DATA_SCR   |  LUX SCREEN   | ACCUM SCREEN  |
+    //----------------+---------------+----------------+--------------+---------------+---------------+
+    { act_idle,       act_idle,        act_bars_idle,   act_data_idle,  act_lux_idle,   act_idle       }, // GUI_NO_EVENT
     { act_light_up,   act_light_up,    act_light_up,    act_light_up,   act_light_up,   act_light_up   }, // GUI_KEY_A_PRESSED
     { act_light_down, act_light_down,  act_light_down,  act_light_down, act_light_down, act_light_down }, // GUI_KEY_B_PRESSED
-    { act_spect_in,   act_spect_in,    act_hold,        act_hold,       act_spect_in,   act_spect_in   }, // GUI_JOY_PRESSED
-    { act_gain_up,    act_expos_up,    act_data_in,     act_spect_in,   act_idle,       act_accum_up   }, // GUI_JOY_UP
-    { act_gain_down,  act_expos_down,  act_data_in,     act_spect_in,   act_idle,       act_accum_down }, // GUI_JOY_DOWN
-    { act_accum_in,   act_gain_in,     act_expos_in,    act_expos_in,   act_spect_in,   act_lux_in     }, // GUI_JOY_LEFT
-    { act_expos_in,   act_spect_in,    act_lux_in,      act_lux_in,     act_accum_in,   act_gain_in    }  // GUI_JOY_RIGHT
+    { act_bars_in,    act_bars_in,     act_hold,        act_hold,       act_hold,       act_bars_in    }, // GUI_JOY_PRESSED
+    { act_gain_up,    act_expos_up,    act_data_in,     act_bars_in,    act_idle,       act_accum_up   }, // GUI_JOY_UP
+    { act_gain_down,  act_expos_down,  act_data_in,     act_bars_in,    act_idle,       act_accum_down }, // GUI_JOY_DOWN
+    { act_accum_in,   act_gain_in,     act_expos_in,    act_expos_in,   act_bars_in,    act_lux_in     }, // GUI_JOY_LEFT
+    { act_expos_in,   act_bars_in,     act_lux_in,      act_lux_in,     act_accum_in,   act_gain_in    }  // GUI_JOY_RIGHT
   };
   return (menu_action_t) pgm_read_ptr(&menu_action[event][state]);
 }
@@ -397,17 +398,17 @@ static menu_action_t get_action(uint8_t state, uint8_t event)
 static uint8_t get_next_screen(uint8_t state, uint8_t event)
 {
   static const PROGMEM uint8_t next_screen[][GUI_MAX_STATES] = {
-    //----------------+---------------+----------------+---------------+---------------+---------------+
-    //  GAIN SCREEN   | EXPOSURE SCR  |  SPECTRUM SCR  |   DATA_SCR   |  LUX SCREEN   | ACCUM SCREEN  |
     //----------------+---------------+----------------+--------------+---------------+---------------+
-      { GUI_GAIN_SCR,   GUI_EXPOS_SCR,   GUI_SPECT_SCR, GUI_DATA_SCR,  GUI_LUX_SCR,    GUI_ACCUM_SCR }, // GUI_NO_EVENT
-      { GUI_GAIN_SCR,   GUI_EXPOS_SCR,   GUI_SPECT_SCR, GUI_DATA_SCR,  GUI_LUX_SCR,    GUI_ACCUM_SCR }, // GUI_KEY_A_PRESSED
-      { GUI_GAIN_SCR,   GUI_EXPOS_SCR,   GUI_SPECT_SCR, GUI_DATA_SCR,  GUI_LUX_SCR,    GUI_ACCUM_SCR }, // GUI_KEY_B_PRESSED
-      { GUI_SPECT_SCR,  GUI_SPECT_SCR,   GUI_DATA_SCR,  GUI_SPECT_SCR, GUI_SPECT_SCR,  GUI_SPECT_SCR }, // GUI_JOY_PRESSED
-      { GUI_GAIN_SCR,   GUI_EXPOS_SCR,   GUI_DATA_SCR,  GUI_SPECT_SCR, GUI_LUX_SCR,    GUI_ACCUM_SCR }, // GUI_JOY_UP
-      { GUI_GAIN_SCR,   GUI_EXPOS_SCR,   GUI_DATA_SCR,  GUI_SPECT_SCR, GUI_LUX_SCR,    GUI_ACCUM_SCR }, // GUI_JOY_DOWN
-      { GUI_ACCUM_SCR,  GUI_GAIN_SCR,    GUI_EXPOS_SCR, GUI_EXPOS_SCR, GUI_SPECT_SCR,  GUI_LUX_SCR   }, // GUI_JOY_LEFT
-      { GUI_EXPOS_SCR,  GUI_SPECT_SCR,   GUI_LUX_SCR,   GUI_LUX_SCR,   GUI_ACCUM_SCR,  GUI_GAIN_SCR }   // GUI_JOY_RIGHT
+    //  GAIN SCREEN   | EXPOSURE SCR  |    BARS SCR    |   DATA_SCR   |  LUX SCREEN   | ACCUM SCREEN  |
+    //----------------+---------------+----------------+--------------+---------------+---------------+
+      { GUI_GAIN_SCR,   GUI_EXPOS_SCR,   GUI_BARS_SCR,  GUI_DATA_SCR,  GUI_LUX_SCR,    GUI_ACCUM_SCR }, // GUI_NO_EVENT
+      { GUI_GAIN_SCR,   GUI_EXPOS_SCR,   GUI_BARS_SCR,  GUI_DATA_SCR,  GUI_LUX_SCR,    GUI_ACCUM_SCR }, // GUI_KEY_A_PRESSED
+      { GUI_GAIN_SCR,   GUI_EXPOS_SCR,   GUI_BARS_SCR,  GUI_DATA_SCR,  GUI_LUX_SCR,    GUI_ACCUM_SCR }, // GUI_KEY_B_PRESSED
+      { GUI_BARS_SCR,   GUI_BARS_SCR,    GUI_BARS_SCR,  GUI_BARS_SCR,  GUI_LUX_SCR,    GUI_BARS_SCR  }, // GUI_JOY_PRESSED
+      { GUI_GAIN_SCR,   GUI_EXPOS_SCR,   GUI_DATA_SCR,  GUI_BARS_SCR,  GUI_LUX_SCR,    GUI_ACCUM_SCR }, // GUI_JOY_UP
+      { GUI_GAIN_SCR,   GUI_EXPOS_SCR,   GUI_DATA_SCR,  GUI_BARS_SCR,  GUI_LUX_SCR,    GUI_ACCUM_SCR }, // GUI_JOY_DOWN
+      { GUI_ACCUM_SCR,  GUI_GAIN_SCR,    GUI_EXPOS_SCR, GUI_EXPOS_SCR, GUI_BARS_SCR,   GUI_LUX_SCR   }, // GUI_JOY_LEFT
+      { GUI_EXPOS_SCR,  GUI_BARS_SCR,    GUI_LUX_SCR,   GUI_LUX_SCR,   GUI_ACCUM_SCR,  GUI_GAIN_SCR  }   // GUI_JOY_RIGHT
     };
   return pgm_read_byte(&next_screen[event][state]);
 }
@@ -474,11 +475,7 @@ static uint8_t read_buttons()
 {
   extern Adafruit_miniTFTWing ss;
   extern bool toSerial;
-
-  uint8_t event = GUI_NO_EVENT;
-
-  // miniTFT wing buttons;
-  uint32_t buttons;
+ 
 
   // Read Serial Port commands
   if (Serial.available() > 0) {
@@ -490,9 +487,19 @@ static uint8_t read_buttons()
       toSerial = false;
   }
 
+  static unsigned long prev_timestamp = 0;
+  unsigned long cur_timestamp = millis();
+  uint8_t event = GUI_NO_EVENT;
+
+  if ((cur_timestamp - prev_timestamp) < SHORT_DELAY) {
+    return event;
+  }
+  prev_timestamp = cur_timestamp;
+
+  // miniTFT wing buttons;
   // read buttons via the I2C SeeSaw chip in miniTFTWing
   // These buttons are active-low logic
-  buttons = ss.readButtons();
+  uint32_t buttons = ss.readButtons();
 
 
   if ((buttons & TFTWING_BUTTON_A) == 0) {
@@ -612,9 +619,10 @@ static void display_bars(bool refresh)
 {
   extern as7262_info_t   as7262_info;
   extern Adafruit_ST7735 tft;
+  extern bool holdMode;
 
-  uint16_t barWidth = (tft.width()) / AS726x_NUM_CHANNELS;
-
+  uint16_t gridWidth = tft.width() / AS726x_NUM_CHANNELS;
+  uint16_t barWidth  = (holdMode) ?  gridWidth : gridWidth/2;
   
   // Display bar buffers, used to minimize redrawings
   static uint16_t height[AS726x_NUM_CHANNELS][2];
@@ -631,8 +639,8 @@ static void display_bars(bool refresh)
   if (refresh) { 
     for(int i=0; i<AS726x_NUM_CHANNELS; i++) {
       uint16_t color  = pgm_read_word(&colors[i]);  
-      tft.fillRect(barWidth * i, 0, barWidth, tft.height() - height[i][curBuf], BLACK);
-      tft.fillRect(barWidth * i, tft.height() - height[i][curBuf], barWidth, height[i][curBuf], color);
+      tft.fillRect(gridWidth * i, 0, gridWidth, tft.height() - height[i][curBuf], BLACK);
+      tft.fillRect(gridWidth * i, tft.height() - height[i][curBuf], barWidth, height[i][curBuf], color);
     }
   }
   curBuf ^= 0x01; // switch to the other buffer
@@ -666,7 +674,6 @@ static void display_data()
     tft.setTextColor(color, BLACK);
     tft.print(as7262_info.latched.raw[i]); 
   }
-  //delay(SHORT_DELAY);
 }
 
 /* ************************************************************************** */ 
@@ -687,7 +694,6 @@ static void display_gain()
   tft.setTextColor(WHITE, BLACK);
   tft.print(GainTable[as7262_info.gain]);
   tft.print('x');
-  delay(SHORT_DELAY);
 }
 
 
@@ -707,7 +713,6 @@ static void display_exposure()
   tft.setCursor(0, tft.width()/3);
   tft.setTextColor(WHITE, BLACK);
   tft.print(as7262_info.exposure*EXPOSURE_UNIT*2,1); tft.print(" ms");
-  delay(SHORT_DELAY);
 }
 
 /* ************************************************************************** */ 
@@ -715,6 +720,7 @@ static void display_exposure()
 static void display_lux()
 {
   extern OPT3001    opt3001_info;
+  extern bool holdMode;
   static float prev_lux = 0;
 
   if (opt3001_info.lux != prev_lux) {
@@ -724,7 +730,6 @@ static void display_lux()
     tft.print(opt3001_info.lux+OPT3001_OFFSET,2); 
   }
   prev_lux = opt3001_info.lux;
-  //delay(SHORT_DELAY);
 }
 
 /* ************************************************************************** */ 
@@ -743,7 +748,6 @@ static void display_accum()
   tft.setCursor(tft.height()/3, tft.width()/3);
   tft.setTextColor(WHITE, BLACK);
   tft.print(as7262_info.accLimit); tft.print("x");
-  delay(SHORT_DELAY);
 }
 
 
@@ -841,7 +845,6 @@ static void act_hold()
 { 
   extern bool holdMode;
   holdMode ^= 0x01;   // toggles Hold Mode
-  delay(SHORT_DELAY); 
 }
 
 
@@ -886,8 +889,7 @@ static void do_brightness(uint8_t backlight)
   extern tft_info_t           tft_info;
 
   tft_info.backlight = constrain(backlight, 10, 100);
-  ss.setBacklight(map(tft_info.backlight,0,100,65535,0));
-  delay(SHORT_DELAY); 
+  ss.setBacklight(map(tft_info.backlight,0,100,65535,0)); 
 }
 
 /* ------------------------------------------------------------------------- */ 
@@ -947,16 +949,15 @@ static void act_gain_down()
 
 /* ------------------------------------------------------------------------- */ 
 
-static void act_spect_in()
+static void act_bars_in()
 {
   act_idle();
   display_bars(true);
-  delay(SHORT_DELAY);
 }
 
 /* ------------------------------------------------------------------------- */ 
 
-static void act_spect_idle()
+static void act_bars_idle()
 {
   act_idle();
   display_bars(false);
