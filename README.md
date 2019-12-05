@@ -1,9 +1,25 @@
-# Spectral Colors
+# StreetColors
 
-Low Cost, Low Resolution 6 band spectrograph Arduno project based on the AS7262 device.
+Low Cost, Low Resolution 6 band photometer Arduno project based on the AS7262 device.
 This educational project is developped under EU-funded [ACTION project](https://actionproject.eu/).
 
-## Notes
+## Features
+
+The main features of this release are:
+* Reads AS7262 & OPT3001 sensors.
+* Continuous real-time readings or HOLD mode.
+* Accumulate readings for low level light situations.
+* Configuration screens:
+	- Exposure time (5.6 ms to 1428ms, 25ms steps)
+	- Gain (1x, 3.7x, 16x, 64x)
+	- Accumulation factor (1x, 2x, 4x, 8x, 16x)
+* Display screens:
+	- Luxometer screen (OPT 3001)
+	- 6 Color bar graph (AS7262)
+	- Tabular data, 2 columns, 3 values (AS7262)
+* Sends readings by Bluetooth and optionally by serial port.
+
+## Hardware
 
 The current version is based on the following hardware:
 * [Arduino Nano](https://store.arduino.cc/arduino-nano)
@@ -12,18 +28,9 @@ The current version is based on the following hardware:
 * [Adafruit Mini Color TFT with Joystick FeatherWing](https://www.adafruit.com/product/3321)
 * [Adafruit Bluefruit LE SPI Friend - Bluetooth Low Energy (BLE)](https://www.adafruit.com/product/2633)
 
-## Features
-
-The main features of this release are:
-* Reads AS7262 & OPT3001 sensors
-* Display sensor readings on a color mini TFT display (bar graph in case of AS7262).
-* A simple menu system allows you to configurate AS7262 gain & exposure time.
-* Accumulate AS7262 readings (2x, 4x, 8x, 16x factors) for very low lighting conditions.
-* Sends readings by Bluetooth and optionally by serial port.
-
 ## Limitations
 
-As the Arduino Nano flash memory is almost full (99,92%), we cannot include features like:
+As the Arduino Nano flash memory is almost full (99%), we cannot include features like:
 
 * commands via BT or serial port to configure the device in the same way as done from the TFT desplay.
 * a better menu system
@@ -43,7 +50,10 @@ A future release based on the pin-to-pin compatible [Arduino Nano Every](https:/
 
 ## I2C Pull-up resistor
 
-* The schematic of *Adafruit AS7262 6-Channel Visible Light / Color Sensor Breakout* shows a bidirectional level shifter with MOSFETs and 10k pull-up resistors in the I2C SCL and SDA lines. So the project does not include any external pull-up resistor.
+* The schematic of *Adafruit AS7262 6-Channel Visible Light / Color Sensor Breakout* shows a bidirectional level shifter with MOSFETs and 10k pull-up resistors in the I2C SCL and SDA lines. 
+* Arduino Wire Library is configured to use internal (weak) pull ups.
+
+So the project does not include any external pull-up resistor.
 
 ## Sensor data sent to Serial Port
 
