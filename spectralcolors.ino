@@ -161,11 +161,16 @@ So, the built-in LED becomes unusable after miniTFTWing initialization
 // Some predefined colors for the 16 bit TFT
 // -----------------------------------------
 
+// 5-6-5 R-G-B color scheme
+#define MAKE_RGB(r,g,b) (((r)<<11) | ((g)<<5) | (b))
+
+#define GRAY2 MAKE_RGB(B11000,B110000,B11000)
+
 #define BLACK   0x0000
 #define GRAY    0x8410
 #define WHITE   0xFFFF
 #define RED     0xF800
-#define ORANGE  0xFA60
+#define ORANGE  0xFA60 // o 0xFC00
 #define YELLOW  0xFFE0  
 #define LIME    0x07FF
 #define GREEN   0x07E0
@@ -283,6 +288,9 @@ unsigned long  opt3001_tstamp;         // timestamp as given by millis() functio
 // enable readings to serial port 
 bool toSerial = false;
 
+// enable/disable hold mode
+bool holdMode = false;
+
 /* ************************************************************************** */ 
 /*                      GUI STATE MACHINE DECLARATIONS                        */
 /* ************************************************************************** */ 
@@ -359,6 +367,7 @@ static void act_lux_idle();   // Idle activity when in the luxometer screen
 static void act_accum_in();   // Entering the accumulate readings screen
 static void act_accum_up();   // Increasde the accumulation of readings
 static void act_accum_down(); // Decrease the accumulation ofn readings
+static void act_hold();       // Toggle Hold Mode
 
 // Action to execute as a function of current state and event
 // This table is held in Flash memory to save precious RAM
@@ -371,7 +380,7 @@ static menu_action_t get_action(uint8_t state, uint8_t event)
     { act_idle,       act_idle,        act_spect_idle,  act_data_idle,  act_lux_idle,   act_idle       }, // GUI_NO_EVENT
     { act_light_up,   act_light_up,    act_light_up,    act_light_up,   act_light_up,   act_light_up   }, // GUI_KEY_A_PRESSED
     { act_light_down, act_light_down,  act_light_down,  act_light_down, act_light_down, act_light_down }, // GUI_KEY_B_PRESSED
-    { act_spect_in,   act_spect_in,    act_data_in,     act_spect_in,   act_spect_in,   act_spect_in   }, // GUI_JOY_PRESSED
+    { act_spect_in,   act_spect_in,    act_hold,        act_hold,       act_spect_in,   act_spect_in   }, // GUI_JOY_PRESSED
     { act_gain_up,    act_expos_up,    act_data_in,     act_spect_in,   act_idle,       act_accum_up   }, // GUI_JOY_UP
     { act_gain_down,  act_expos_down,  act_data_in,     act_spect_in,   act_idle,       act_accum_down }, // GUI_JOY_DOWN
     { act_accum_in,   act_gain_in,     act_expos_in,    act_expos_in,   act_spect_in,   act_lux_in     }, // GUI_JOY_LEFT
@@ -622,7 +631,7 @@ static void display_bars(bool refresh)
   if (refresh) { 
     for(int i=0; i<AS726x_NUM_CHANNELS; i++) {
       uint16_t color  = pgm_read_word(&colors[i]);  
-      tft.fillRect(barWidth * i, 0, barWidth, tft.height() - height[i][curBuf], ST7735_BLACK);
+      tft.fillRect(barWidth * i, 0, barWidth, tft.height() - height[i][curBuf], BLACK);
       tft.fillRect(barWidth * i, tft.height() - height[i][curBuf], barWidth, height[i][curBuf], color);
     }
   }
@@ -634,12 +643,16 @@ static void display_bars(bool refresh)
 static void display_data()
 {
   extern tft_info_t tft_info;
+  extern bool holdMode;
+  uint16_t color;
   
+  color = (holdMode) ?  WHITE : GRAY2;
+
   tft.setTextSize(2); // 2x the original font
   for(int i=0; i<AS726x_NUM_CHANNELS; i++) {
      uint16_t h0;
      uint16_t w0;
-     uint16_t color  = pgm_read_word(&colors[i]);  
+     uint16_t txtcolor  = pgm_read_word(&colors[i]);  
     if ((i % 2) == 0) {
       w0 = 0;
       h0 = (tft.height()*i)/(AS726x_NUM_CHANNELS);
@@ -647,10 +660,10 @@ static void display_data()
       w0 = tft.width()/2;
     }
     tft.setCursor(w0, h0); 
-    tft.setTextColor(color, ST7735_BLACK); 
+    tft.setTextColor(txtcolor, BLACK); 
     tft.print(labelTable[i]);
     tft.setCursor(w0+12, h0);
-    tft.setTextColor(ST7735_WHITE, ST7735_BLACK);
+    tft.setTextColor(color, BLACK);
     tft.print(as7262_info.latched.raw[i]); 
   }
   //delay(SHORT_DELAY);
@@ -663,15 +676,15 @@ static void display_gain()
 {
   extern as7262_info_t as7262_info;
  
-  tft.fillScreen(ST7735_BLACK);
+  tft.fillScreen(BLACK);
   // Display the "Gain" sttring in TFT
   tft.setTextSize(3); // 3x the original font
   tft.setCursor(tft.height()/3, 0);
-  tft.setTextColor(ST7735_WHITE, ST7735_BLACK);
+  tft.setTextColor(YELLOW, BLACK);
   tft.print("Gain");
   // Display the gain value string in TFT
   tft.setCursor(tft.height()/3, tft.width()/3);
-  tft.setTextColor(ST7735_YELLOW, ST7735_BLACK);
+  tft.setTextColor(WHITE, BLACK);
   tft.print(GainTable[as7262_info.gain]);
   tft.print('x');
   delay(SHORT_DELAY);
@@ -684,15 +697,15 @@ static void display_exposure()
 {
   extern as7262_info_t as7262_info;
 
-  tft.fillScreen(ST7735_BLACK);
+  tft.fillScreen(BLACK);
   // Display the "Gain" sttring in TFT
   tft.setTextSize(3);
   tft.setCursor(0,0);
-  tft.setTextColor(ST7735_WHITE, ST7735_BLACK);
+  tft.setTextColor(YELLOW, BLACK);
   tft.print("Exposure");
   // Display the exposure value string in TFT
   tft.setCursor(0, tft.width()/3);
-  tft.setTextColor(ST7735_YELLOW, ST7735_BLACK);
+  tft.setTextColor(WHITE, BLACK);
   tft.print(as7262_info.exposure*EXPOSURE_UNIT*2,1); tft.print(" ms");
   delay(SHORT_DELAY);
 }
@@ -707,7 +720,7 @@ static void display_lux()
   if (opt3001_info.lux != prev_lux) {
     // refresh display value
     tft.setCursor(0, tft.width()/3);
-    tft.setTextColor(ST7735_YELLOW, ST7735_BLACK);
+    tft.setTextColor(WHITE, BLACK);
     tft.print(opt3001_info.lux+OPT3001_OFFSET,2); 
   }
   prev_lux = opt3001_info.lux;
@@ -720,15 +733,15 @@ static void display_accum()
 {
   extern as7262_info_t as7262_info;
  
-  tft.fillScreen(ST7735_BLACK);
+  tft.fillScreen(BLACK);
   // Display the "Accumula" sttring in TFT
   tft.setTextSize(3); // 3x the original font
   tft.setCursor(tft.height()/3, 0);
-  tft.setTextColor(ST7735_WHITE, ST7735_BLACK);
+  tft.setTextColor(YELLOW, BLACK);
   tft.print("Accum");
   // Display the accumulator value string in TFT
   tft.setCursor(tft.height()/3, tft.width()/3);
-  tft.setTextColor(ST7735_YELLOW, ST7735_BLACK);
+  tft.setTextColor(WHITE, BLACK);
   tft.print(as7262_info.accLimit); tft.print("x");
   delay(SHORT_DELAY);
 }
@@ -799,26 +812,38 @@ static void act_idle()
   extern Adafruit_BluefruitLE_SPI ble;
   extern bool toSerial;
 
-  if (as7262_read()) {
-    String line;
-    format_as7262_msg(line);
-    if (ble.isConnected()) 
-      ble.print(line.c_str());  // send to BLE
-    if(toSerial) 
-      Serial.print(line);
-  }
-
-  if (opt3001_read()) {
-    String line;
-    format_opt3001_msg(line);
-    if (ble.isConnected())
-      ble.print(line.c_str());  // send to BLE
-    if(toSerial) 
-      Serial.print(line);
-  }
-
   dbg_heartbeat();
+
+  if( ! holdMode ) {
+    if (as7262_read()) {
+      String line;
+      format_as7262_msg(line);
+      if (ble.isConnected()) 
+        ble.print(line.c_str());  // send to BLE
+      if(toSerial) 
+        Serial.print(line);
+    }
+
+    if (opt3001_read()) {
+      String line;
+      format_opt3001_msg(line);
+      if (ble.isConnected())
+        ble.print(line.c_str());  // send to BLE
+      if(toSerial) 
+        Serial.print(line);
+    }
+  }
 }
+
+/* ------------------------------------------------------------------------- */ 
+
+static void act_hold()
+{ 
+  extern bool holdMode;
+  holdMode ^= 0x01;   // toggles Hold Mode
+  delay(SHORT_DELAY); 
+}
+
 
 /* ------------------------------------------------------------------------- */ 
 
@@ -935,23 +960,16 @@ static void act_data_in()
 {
   extern tft_info_t tft_info;
   act_idle();
-  tft.fillScreen(ST7735_BLACK);
+  tft.fillScreen(BLACK);
   display_data();
 }
 
 /* ------------------------------------------------------------------------- */ 
 
-#define N1 512
 static void act_data_idle()
 {
-  static uint16_t divider2 = N1-1;
-
   act_idle();
-  divider2 += 1;
-  divider2 &= (N1-1); // (2^N - 1)
-  if (divider2 == 0) {
-     display_data();
-  }
+  display_data();
 }
 
 /* ------------------------------------------------------------------------- */ 
@@ -967,10 +985,10 @@ static void act_lux_idle()
 static void act_lux_in()
 {
   
-  tft.fillScreen(ST7735_BLACK);
+  tft.fillScreen(BLACK);
   tft.setTextSize(3);
   tft.setCursor(0,0);
-  tft.setTextColor(ST7735_WHITE, ST7735_BLACK);
+  tft.setTextColor(YELLOW, BLACK);
   tft.print("Lux");
 
   act_lux_idle();
@@ -1095,7 +1113,7 @@ static void setup_tft()
   Serial.print(F("miniTFT..."));
   tft.initR(INITR_MINI160x80);   // initialize a ST7735S chip, mini display
   tft.setRotation(3);            
-  tft.fillScreen(ST7735_BLACK);
+  tft.fillScreen(BLACK);
   Serial.println(F("ok"));
 }
 
