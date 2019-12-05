@@ -932,7 +932,7 @@ static void act_gain_up()
   extern as7262_info_t   as7262_info;
   extern Adafruit_AS726x ams;
 
-  do_gain((as7262_info.gain + 1) & 0b11);
+  do_gain((as7262_info.gain + 1) & 0b11); // save a few bytes by using this function
 }
 
 /* ------------------------------------------------------------------------- */ 
@@ -942,7 +942,7 @@ static void act_gain_down()
   extern as7262_info_t   as7262_info;
   extern Adafruit_AS726x ams;
 
-  do_gain((as7262_info.gain - 1) & 0b11);
+  do_gain((as7262_info.gain - 1) & 0b11); // save a few bytes by using this function
 }
 
 /* ------------------------------------------------------------------------- */ 
@@ -967,7 +967,7 @@ static void act_spect_idle()
 static void act_data_in()
 {
   extern tft_info_t tft_info;
-  
+
   act_idle();
   tft.fillScreen(BLACK);
   display_data();
@@ -1025,7 +1025,7 @@ static void act_accum_up()
   extern as7262_info_t   as7262_info;
 
   as7262_info.accLimit = min(MAX_ACCUM, 2*as7262_info.accLimit);
-  do_accum();
+  do_accum(); // save a few bytes by using this function
 }
 
 /* ------------------------------------------------------------------------- */ 
@@ -1035,7 +1035,7 @@ static void act_accum_down()
   extern as7262_info_t   as7262_info;
 
   as7262_info.accLimit = max(1, as7262_info.accLimit/2);
-  do_accum();
+  do_accum(); // save a few bytes by using this function
 }
 
 /* ------------------------------------------------------------------------- */ 
