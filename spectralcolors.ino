@@ -359,12 +359,13 @@ static void act_expos_in();   // Entering the AS7262 exposure time screen
 static void act_expos_up();   // Increase the AS7262 exposure time
 static void act_expos_down(); // Decrease the AS7262 exposure time
 static void act_bars_in();   // Display the spectrum bars
-static void act_bars_idle(); // Idle activity when in the spectrum bars screen
-static void act_bars_hold(); // Idle activity when in the spectrum bars screen
+static void act_bars_idle();  // Idle activity when in the spectrum bars screen
+static void act_bars_hold();  // Hold action when in the spectrum bars screen
 static void act_data_in();    // Display the spectrum as data lines
 static void act_data_idle();  // Idle activity when in the data lines screen
 static void act_lux_in();     // Entering the luxometer screen
 static void act_lux_idle();   // Idle activity when in the luxometer screen
+static void act_lux_hold();   // Hold action when in the luxometer screen
 static void act_accum_in();   // Entering the accumulate readings screen
 static void act_accum_up();   // Increasde the accumulation of readings
 static void act_accum_down(); // Decrease the accumulation ofn readings
@@ -382,7 +383,7 @@ static menu_action_t get_action(uint8_t state, uint8_t event)
     { act_idle,       act_idle,        act_bars_idle,   act_data_idle,  act_lux_idle,   act_idle       }, // GUI_NO_EVENT
     { act_light_up,   act_light_up,    act_light_up,    act_light_up,   act_light_up,   act_light_up   }, // GUI_KEY_A_PRESSED
     { act_light_down, act_light_down,  act_light_down,  act_light_down, act_light_down, act_light_down }, // GUI_KEY_B_PRESSED
-    { act_bars_in,    act_bars_in,     act_bars_hold,   act_hold,       act_hold,       act_bars_in    }, // GUI_JOY_PRESSED
+    { act_bars_in,    act_bars_in,     act_bars_hold,   act_hold,       act_lux_hold,   act_bars_in    }, // GUI_JOY_PRESSED
     { act_gain_up,    act_expos_up,    act_data_in,     act_bars_in,    act_idle,       act_accum_up   }, // GUI_JOY_UP
     { act_gain_down,  act_expos_down,  act_data_in,     act_bars_in,    act_idle,       act_accum_down }, // GUI_JOY_DOWN
     { act_accum_in,   act_gain_in,     act_expos_in,    act_expos_in,   act_bars_in,    act_lux_in     }, // GUI_JOY_LEFT
@@ -653,9 +654,7 @@ static void display_data()
 {
   extern tft_info_t tft_info;
   extern bool holdMode;
-  uint16_t color;
-  
-  color = (holdMode) ?  WHITE : GRAY2;
+  uint16_t color = (holdMode) ?  WHITE : GRAY2;
 
   tft.setTextSize(2); // 2x the original font
   for(int i=0; i<AS726x_NUM_CHANNELS; i++) {
@@ -675,6 +674,29 @@ static void display_data()
     tft.setTextColor(color, BLACK);
     tft.print(as7262_info.latched.raw[i]); 
   }
+}
+
+/* ************************************************************************** */ 
+
+static void display_lux(bool refresh)
+{
+  extern OPT3001    opt3001_info;
+  extern bool holdMode;
+  static float prev_lux = 0;
+  uint16_t color = (holdMode) ?  WHITE : GRAY2;
+
+  if (opt3001_info.lux != prev_lux) {
+    prev_lux = opt3001_info.lux;
+    refresh = true;
+  }
+
+  if (refresh) {
+    // refresh display value
+    tft.setCursor(0, tft.width()/3);
+    tft.setTextColor(color, BLACK);
+    tft.print(opt3001_info.lux+OPT3001_OFFSET,2); 
+  }
+  
 }
 
 /* ************************************************************************** */ 
@@ -716,22 +738,7 @@ static void display_exposure()
   tft.print(as7262_info.exposure*EXPOSURE_UNIT*2,1); tft.print(" ms");
 }
 
-/* ************************************************************************** */ 
 
-static void display_lux()
-{
-  extern OPT3001    opt3001_info;
-  extern bool holdMode;
-  static float prev_lux = 0;
-
-  if (opt3001_info.lux != prev_lux) {
-    // refresh display value
-    tft.setCursor(0, tft.width()/3);
-    tft.setTextColor(WHITE, BLACK);
-    tft.print(opt3001_info.lux+OPT3001_OFFSET,2); 
-  }
-  prev_lux = opt3001_info.lux;
-}
 
 /* ************************************************************************** */ 
 
@@ -995,7 +1002,7 @@ static void act_data_idle()
 static void act_lux_idle()
 {
   act_idle();
-  display_lux();
+  display_lux(false);
 }
 
 /* ------------------------------------------------------------------------- */ 
@@ -1008,8 +1015,17 @@ static void act_lux_in()
   tft.setCursor(0,0);
   tft.setTextColor(YELLOW, BLACK);
   tft.print("Lux");
+  act_idle();
+  display_lux(true);
+}
 
-  act_lux_idle();
+/* ------------------------------------------------------------------------- */ 
+
+static void act_lux_hold()
+{
+  
+  act_hold();
+  act_lux_in();
 }
 
 /* ------------------------------------------------------------------------- */ 
