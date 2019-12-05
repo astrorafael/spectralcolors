@@ -890,6 +890,8 @@ static void do_brightness(uint8_t backlight)
   delay(SHORT_DELAY); 
 }
 
+/* ------------------------------------------------------------------------- */ 
+
 static void act_light_up()
 {
   do_brightness(tft_info.backlight + BACKLIGHT_STEPS);  // save a few bytes by using this function
@@ -922,6 +924,8 @@ static void do_gain(uint8_t gain)
   ams.setGain(gain); 
   display_gain();
 }
+
+/* ------------------------------------------------------------------------- */ 
 
 static void act_gain_up()
 {
@@ -963,6 +967,7 @@ static void act_spect_idle()
 static void act_data_in()
 {
   extern tft_info_t tft_info;
+  
   act_idle();
   tft.fillScreen(BLACK);
   display_data();
@@ -1007,13 +1012,20 @@ static void act_accum_in()
 
 /* ------------------------------------------------------------------------- */ 
 
+static void do_accum()
+{
+  as7262_clear_accum();
+  display_accum();
+}
+
+/* ------------------------------------------------------------------------- */ 
+
 static void act_accum_up()
 {
   extern as7262_info_t   as7262_info;
 
   as7262_info.accLimit = min(MAX_ACCUM, 2*as7262_info.accLimit);
-  as7262_clear_accum();
-  display_accum();
+  do_accum();
 }
 
 /* ------------------------------------------------------------------------- */ 
@@ -1023,8 +1035,7 @@ static void act_accum_down()
   extern as7262_info_t   as7262_info;
 
   as7262_info.accLimit = max(1, as7262_info.accLimit/2);
-  as7262_clear_accum();
-  display_accum();
+  do_accum();
 }
 
 /* ------------------------------------------------------------------------- */ 
