@@ -209,7 +209,7 @@ So, the built-in LED becomes unusable after miniTFTWing initialization
 #define EXPOSURE_STEPS 20 
 
 // backlight steps in a single button up/down click
-#define BACKLIGHT_STEPS 10 
+#define BACKLIGHT_STEPS 25 
 
 // Short delay in screens (milliseconds)
 #define SHORT_DELAY 200
@@ -880,30 +880,33 @@ static void act_expos_down()
 
 /* ------------------------------------------------------------------------- */ 
 
-static void act_light_up()
+static void do_brightness()
 {
   extern Adafruit_miniTFTWing ss;
   extern tft_info_t           tft_info;
-  int   backlight;
 
-  backlight = tft_info.backlight + BACKLIGHT_STEPS;
-  tft_info.backlight = constrain(backlight, 10, 100);
-  ss.setBacklight(65535-(tft_info.backlight*65535)/100);
+  ss.setBacklight(map(tft_info.backlight,0,100,65535,0));
   delay(SHORT_DELAY); 
+}
+
+static void act_light_up()
+{
+  extern tft_info_t           tft_info;
+
+  int backlight = tft_info.backlight + BACKLIGHT_STEPS;
+  tft_info.backlight = constrain(backlight, 10, 100);
+  do_brightness();  // save a few bytes by using this function
 }
 
 /* ------------------------------------------------------------------------- */ 
 
 static void act_light_down()
 {
-  extern Adafruit_miniTFTWing ss;
   extern tft_info_t           tft_info;
-  int    backlight;
 
-  backlight = tft_info.backlight - BACKLIGHT_STEPS;
+  int backlight = tft_info.backlight - BACKLIGHT_STEPS;
   tft_info.backlight = constrain(backlight, 10, 100);
-  ss.setBacklight(65535-(tft_info.backlight*65535)/100); 
-  delay(SHORT_DELAY);
+  do_brightness(); // save a few bytes by using this function
 }
 
 /* ------------------------------------------------------------------------- */ 
@@ -1021,7 +1024,6 @@ static void act_accum_down()
   as7262_info.accLimit = max(1, as7262_info.accLimit/2);
   as7262_clear_accum();
   display_accum();
-
 }
 
 /* ------------------------------------------------------------------------- */ 
