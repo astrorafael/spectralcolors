@@ -291,6 +291,9 @@ bool toSerial = false;
 // enable/disable hold mode
 bool holdMode = false;
 
+// display absolute or auto scale bar graphs
+bool autoScaleMode = false;
+
 /* ************************************************************************** */ 
 /*                      GUI STATE MACHINE DECLARATIONS                        */
 /* ************************************************************************** */ 
@@ -370,6 +373,7 @@ static void act_accum_in();   // Entering the accumulate readings screen
 static void act_accum_up();   // Increasde the accumulation of readings
 static void act_accum_down(); // Decrease the accumulation ofn readings
 static void act_hold();       // Toggle Hold Mode
+static void act_autoscale();  // Toggle AutoScale Mode
 
 // Action to execute as a function of current state and event
 // This table is held in Flash memory to save precious RAM
@@ -384,8 +388,8 @@ static menu_action_t get_action(uint8_t state, uint8_t event)
     { act_light_up,   act_light_up,    act_light_up,    act_light_up,   act_light_up,   act_light_up   }, // GUI_KEY_A_PRESSED
     { act_light_down, act_light_down,  act_light_down,  act_light_down, act_light_down, act_light_down }, // GUI_KEY_B_PRESSED
     { act_bars_in,    act_bars_in,     act_bars_hold,   act_hold,       act_lux_hold,   act_bars_in    }, // GUI_JOY_PRESSED
-    { act_gain_up,    act_expos_up,    act_data_in,     act_bars_in,    act_idle,       act_accum_up   }, // GUI_JOY_UP
-    { act_gain_down,  act_expos_down,  act_data_in,     act_bars_in,    act_idle,       act_accum_down }, // GUI_JOY_DOWN
+    { act_gain_up,    act_expos_up,    act_data_in,     act_data_idle,  act_idle,       act_accum_up   }, // GUI_JOY_UP
+    { act_gain_down,  act_expos_down,  act_autoscale,   act_bars_in,    act_idle,       act_accum_down }, // GUI_JOY_DOWN
     { act_accum_in,   act_gain_in,     act_expos_in,    act_expos_in,   act_bars_in,    act_lux_in     }, // GUI_JOY_LEFT
     { act_expos_in,   act_bars_in,     act_lux_in,      act_lux_in,     act_accum_in,   act_gain_in    }  // GUI_JOY_RIGHT
   };
@@ -408,7 +412,7 @@ static uint8_t get_next_screen(uint8_t state, uint8_t event)
       { GUI_GAIN_SCR,   GUI_EXPOS_SCR,   GUI_BARS_SCR,  GUI_DATA_SCR,  GUI_LUX_SCR,    GUI_ACCUM_SCR }, // GUI_KEY_B_PRESSED
       { GUI_BARS_SCR,   GUI_BARS_SCR,    GUI_BARS_SCR,  GUI_DATA_SCR,  GUI_LUX_SCR,    GUI_BARS_SCR  }, // GUI_JOY_PRESSED
       { GUI_GAIN_SCR,   GUI_EXPOS_SCR,   GUI_DATA_SCR,  GUI_BARS_SCR,  GUI_LUX_SCR,    GUI_ACCUM_SCR }, // GUI_JOY_UP
-      { GUI_GAIN_SCR,   GUI_EXPOS_SCR,   GUI_DATA_SCR,  GUI_BARS_SCR,  GUI_LUX_SCR,    GUI_ACCUM_SCR }, // GUI_JOY_DOWN
+      { GUI_GAIN_SCR,   GUI_EXPOS_SCR,   GUI_BARS_SCR,  GUI_BARS_SCR,  GUI_LUX_SCR,    GUI_ACCUM_SCR }, // GUI_JOY_DOWN
       { GUI_ACCUM_SCR,  GUI_GAIN_SCR,    GUI_EXPOS_SCR, GUI_EXPOS_SCR, GUI_BARS_SCR,   GUI_LUX_SCR   }, // GUI_JOY_LEFT
       { GUI_EXPOS_SCR,  GUI_BARS_SCR,    GUI_LUX_SCR,   GUI_LUX_SCR,   GUI_ACCUM_SCR,  GUI_GAIN_SCR  }   // GUI_JOY_RIGHT
     };
@@ -545,6 +549,15 @@ static uint8_t opt3001_read()
   return dataReady;
 }
 
+static uint16_t peak()
+{
+   extern as7262_info_t as7262_info;
+   uint16_t target = 0; // reset accum counter
+   for (int i=0; i<AS726x_NUM_CHANNELS; i++) {
+     target = max(target, as7262_info.latched.raw[i]);
+   }
+   return target;
+}
 
 /* ************************************************************************** */ 
 
@@ -624,6 +637,7 @@ static void display_bars(bool refresh)
 
   uint16_t gridWidth = tft.width() / AS726x_NUM_CHANNELS;
   uint16_t barWidth  = (holdMode) ?  gridWidth : gridWidth/2;
+  uint16_t peakValue = (autoScaleMode) ? peak() : AS7262_SENSOR_MAX;
   
   // Display bar buffers, used to minimize redrawings
   static uint16_t height[AS726x_NUM_CHANNELS][2];
@@ -631,7 +645,7 @@ static void display_bars(bool refresh)
 
   // see if we really have to redraw the bars
   for(int i=0; i<AS726x_NUM_CHANNELS; i++) {
-    height[i][curBuf] = map(as7262_info.latched.raw[i], 0, AS7262_SENSOR_MAX, 0, tft.height());
+    height[i][curBuf] = map(as7262_info.latched.raw[i], 0, peakValue, 0, tft.height());
     if (height[i][curBuf] != height[i][curBuf  ^ 0x01]) {
       refresh = true;
     }
@@ -854,6 +868,13 @@ static void act_hold()
   holdMode ^= 0x01;   // toggles Hold Mode
 }
 
+/* ------------------------------------------------------------------------- */ 
+
+static void act_autoscale()
+{ 
+  extern bool autoScaleMode;
+  autoScaleMode ^= 0x01;   // toggles Hold Mode
+}
 
 /* ------------------------------------------------------------------------- */ 
 
