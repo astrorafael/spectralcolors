@@ -865,15 +865,23 @@ static void act_expos_in()
 
 /* ------------------------------------------------------------------------- */ 
 
-static void act_expos_up()
+
+static void do_exposure(int16_t exposure)
 {
   extern as7262_info_t   as7262_info;
   extern Adafruit_AS726x ams;
-  int exposure = as7262_info.exposure + EXPOSURE_STEPS;
 
   as7262_info.exposure = constrain(exposure, 1, 255);
   ams.setIntegrationTime(as7262_info.exposure); 
   display_exposure();
+}
+/* ------------------------------------------------------------------------- */ 
+
+static void act_expos_up()
+{
+  extern as7262_info_t   as7262_info;
+  
+  do_exposure(as7262_info.exposure + EXPOSURE_STEPS); // save a few bytes by using this function
 }
 
 /* ------------------------------------------------------------------------- */ 
@@ -881,12 +889,8 @@ static void act_expos_up()
 static void act_expos_down()
 {
   extern as7262_info_t   as7262_info;
-  extern Adafruit_AS726x ams;
-  int exposure = as7262_info.exposure - EXPOSURE_STEPS;
-
-  as7262_info.exposure = constrain(exposure, 1, 255);
-  ams.setIntegrationTime(as7262_info.exposure); 
-  display_exposure();
+  
+  do_exposure(as7262_info.exposure - EXPOSURE_STEPS); // save a few bytes by using this function
 }
 
 /* ------------------------------------------------------------------------- */ 
