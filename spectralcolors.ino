@@ -490,13 +490,12 @@ static uint8_t read_buttons()
   }
 
   static unsigned long prev_timestamp = 0;
-  unsigned long cur_timestamp = millis();
   uint8_t event = GUI_NO_EVENT;
 
-  if ((cur_timestamp - prev_timestamp) < SHORT_DELAY) {
+  if ((millis() - prev_timestamp) < SHORT_DELAY) {
     return event;
   }
-  prev_timestamp = cur_timestamp;
+  prev_timestamp = millis();
 
   // miniTFT wing buttons;
   // read buttons via the I2C SeeSaw chip in miniTFTWing
