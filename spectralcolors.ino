@@ -880,22 +880,19 @@ static void act_expos_down()
 
 /* ------------------------------------------------------------------------- */ 
 
-static void do_brightness()
+static void do_brightness(uint8_t backlight)
 {
   extern Adafruit_miniTFTWing ss;
   extern tft_info_t           tft_info;
 
+  tft_info.backlight = constrain(backlight, 10, 100);
   ss.setBacklight(map(tft_info.backlight,0,100,65535,0));
   delay(SHORT_DELAY); 
 }
 
 static void act_light_up()
 {
-  extern tft_info_t           tft_info;
-
-  int backlight = tft_info.backlight + BACKLIGHT_STEPS;
-  tft_info.backlight = constrain(backlight, 10, 100);
-  do_brightness();  // save a few bytes by using this function
+  do_brightness(tft_info.backlight + BACKLIGHT_STEPS);  // save a few bytes by using this function
 }
 
 /* ------------------------------------------------------------------------- */ 
@@ -904,9 +901,7 @@ static void act_light_down()
 {
   extern tft_info_t           tft_info;
 
-  int backlight = tft_info.backlight - BACKLIGHT_STEPS;
-  tft_info.backlight = constrain(backlight, 10, 100);
-  do_brightness(); // save a few bytes by using this function
+  do_brightness(tft_info.backlight - BACKLIGHT_STEPS); // save a few bytes by using this function
 }
 
 /* ------------------------------------------------------------------------- */ 
@@ -918,14 +913,22 @@ static void act_gain_in()
 
 /* ------------------------------------------------------------------------- */ 
 
+static void do_gain(uint8_t gain)
+{
+  extern as7262_info_t   as7262_info;
+  extern Adafruit_AS726x ams;
+
+  as7262_info.gain = gain;
+  ams.setGain(gain); 
+  display_gain();
+}
+
 static void act_gain_up()
 {
   extern as7262_info_t   as7262_info;
   extern Adafruit_AS726x ams;
 
-  as7262_info.gain = (as7262_info.gain + 1) & 0b11;
-  ams.setGain(as7262_info.gain); 
-  display_gain();
+  do_gain((as7262_info.gain + 1) & 0b11);
 }
 
 /* ------------------------------------------------------------------------- */ 
@@ -935,9 +938,7 @@ static void act_gain_down()
   extern as7262_info_t   as7262_info;
   extern Adafruit_AS726x ams;
 
-  as7262_info.gain = (as7262_info.gain - 1) & 0b11;
-  ams.setGain(as7262_info.gain); 
-  display_gain();
+  do_gain((as7262_info.gain - 1) & 0b11);
 }
 
 /* ------------------------------------------------------------------------- */ 
