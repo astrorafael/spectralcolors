@@ -476,23 +476,32 @@ static void dbg_heartbeat()
 
 /* ************************************************************************** */ 
 
-// Reads miniTFTWing buttons & joystick and produces events
-static uint8_t read_buttons()
+static uint8_t read_stream(Stream& stream)
 {
-  extern Adafruit_miniTFTWing ss;
-  extern bool toSerial;
- 
+
+ extern bool toSerial;
+ uint8_t event = GUI_NO_EVENT;
 
   // Read Serial Port commands
-  if (Serial.available() > 0) {
+  if (stream.available() > 0) {
     // read the incoming byte:
-    unsigned char cmd = Serial.read();
+    unsigned char cmd = stream.read();
     if (cmd == CMD_ENABLE_SERIAL)
       toSerial = true;
     else if (cmd == CMD_DISABLE_SERIAL)
       toSerial = false;
   }
+  return event;
+}
 
+
+/* ************************************************************************** */ 
+
+// Reads miniTFTWing buttons & joystick and produces events
+static uint8_t read_buttons()
+{
+  extern Adafruit_miniTFTWing ss;
+ 
   static unsigned long prev_timestamp = 0;
   uint8_t event = GUI_NO_EVENT;
 
@@ -1235,7 +1244,7 @@ void loop()
   menu_action_t   action;
   uint8_t         event;
  
-  event  = read_buttons();
+  event  = read_stream(Serial) | read_stream(ble) | read_buttons();
   // dbg_fsm(screen, event);
   action = get_action(screen, event);
   screen = get_next_screen(screen, event);
