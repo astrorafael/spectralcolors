@@ -394,7 +394,7 @@ static menu_action_t get_action(uint8_t state, uint8_t event)
     { act_gain_down,  act_expos_down,  act_autoscale,   act_bars_in,    act_idle,       act_accum_down }, // GUI_JOY_DOWN
     { act_accum_in,   act_gain_in,     act_expos_in,    act_expos_in,   act_bars_in,    act_lux_in     }, // GUI_JOY_LEFT
     { act_expos_in,   act_bars_in,     act_lux_in,      act_lux_in,     act_accum_in,   act_gain_in    }, // GUI_JOY_RIGHT
-    { act_hold,       act_hold,        act_hold,        act_hold,       act_lux_hold,   act_hold       }  // REM_HOLD_TOGGLE
+    { act_hold,       act_hold,        act_bars_hold,   act_hold,       act_lux_hold,   act_hold       }  // REM_HOLD_TOGGLE
   };
   return (menu_action_t) pgm_read_ptr(&menu_action[event][state]);
 }
@@ -433,7 +433,8 @@ static uint8_t get_next_screen(uint8_t state, uint8_t event)
 
 // A small helper
 
-#ifdef ARDUINO_AVR_NANO_EVERY
+#if 1
+// This vesion uses RAM Strings
 static void error(const char* err) 
 {
   Serial.println(err);
@@ -444,6 +445,7 @@ static void error(const char* err)
   while(1) ;
 }
 #else
+// This version is meant to be uded with the F() macro (embedded Flash strings")
 static void error(const  __FlashStringHelper* err) 
 {
   Serial.println(err);
@@ -650,10 +652,8 @@ static void display_bars(bool refresh)
   extern Adafruit_ST7735 tft;
   extern bool holdMode;
 
-  uint16_t gridWidth = tft.width() / AS726x_NUM_CHANNELS;
-  uint16_t barWidth  = (holdMode) ?  gridWidth : gridWidth/2;
   uint16_t peakValue = (autoScaleMode) ? peak() : AS7262_SENSOR_MAX;
-  
+ 
   // Display bar buffers, used to minimize redrawings
   static uint16_t height[AS726x_NUM_CHANNELS][2];
   static uint8_t  curBuf = 0;                     // current buffer 
@@ -667,6 +667,10 @@ static void display_bars(bool refresh)
   }
 
   if (refresh) { 
+
+    uint16_t gridWidth = tft.width() / AS726x_NUM_CHANNELS;
+    uint16_t barWidth  = (holdMode) ?  gridWidth/2 : gridWidth ;
+    
     for(int i=0; i<AS726x_NUM_CHANNELS; i++) {
       uint16_t color  = pgm_read_word(&colors[i]);  
       tft.fillRect(gridWidth * i, 0, gridWidth, tft.height() - height[i][curBuf], BLACK);
@@ -711,7 +715,7 @@ static void display_lux(bool refresh)
   extern OPT3001    opt3001_info;
   extern bool holdMode;
   static float prev_lux = 0;
-  uint16_t color = (holdMode) ?  WHITE : GRAY2;
+  uint16_t color = (holdMode) ?  WHITE : YELLOW;
 
   if (opt3001_info.lux != prev_lux) {
     prev_lux = opt3001_info.lux;
@@ -1125,12 +1129,14 @@ static void setup_ble()
   Serial.print(F("Bluefruit SPI..."));
   
   if ( !ble.begin(VERBOSE_MODE) ) {
-    error(F("could not be found!"));
+    //error(F("could not be found!"));
+    error("could not be found!");
   }
 
   if ( FACTORYRESET_ENABLE && ! ble.factoryReset() ) {
     /* Perform a factory reset to make sure everything is in a known state */
-    error(F("could not be factory reset!"));
+    //error(F("could not be factory reset!"));
+    error("could not be factory reset!");
   }
 
   /* Disable command echo from Bluefruit */
@@ -1141,7 +1147,7 @@ static void setup_ble()
   // Set module to DATA mode
   ble.setMode(BLUEFRUIT_MODE_DATA);
   Serial.println("ok");
-  //ble.info();
+  //ble.info();          // Set this only for debug
   //ble.verbose(false);  // debug info is a little annoying after this point!
 }
 
@@ -1155,7 +1161,8 @@ static void setup_as7262()
   Serial.print(F("AS7262..."));
   // finds the 6 channel chip
   if(!ams.begin()){
-    error(F("could not be found!"));
+    //error(F("could not be found!"));
+    error("could not be found!");      // Use RAM strings error(), saving flash memory
   }
   // as initialized by the AS7262 library
   // Note that in MODE 2, the exposure time is actually doubled
@@ -1180,7 +1187,8 @@ static void setup_tft()
   Serial.print(F("SeeSaw..."));
   // acknowledges the Seesaw chip before sending commands to the TFT display
   if (!ss.begin()) {
-    error(F("could not be found!"));
+    //error(F("could not be found!"));
+    error("could not be found!");    // Use RAM strings error(), saving flash memory
   }
   Serial.println("ok"); 
  
@@ -1212,7 +1220,8 @@ static void setup_opt3001()
 
   OPT3001_ErrorCode errorConfig = opt3001.writeConfig(config);
   if (errorConfig != NO_ERROR) {
-    error(F("config error!"));
+    //error(F("config error!"));
+    error("config error!");    // Use RAM strings error(), saving flash memory
   }
   Serial.println("ok");
 }
