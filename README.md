@@ -28,6 +28,25 @@ The current version is based on the following hardware:
 * [Adafruit Mini Color TFT with Joystick FeatherWing](https://www.adafruit.com/product/3321)
 * [Adafruit Bluefruit LE SPI Friend - Bluetooth Low Energy (BLE)](https://www.adafruit.com/product/2633)
 
+## Libraries
+
+This project has been built using the following libraries and versions. 
+Use the Arduino Board Manager to install them:
+
+
+| Library                            | Version | Comment
+|:----------------------------------:|:-------:|:--------------------------|
+| Adafruit BluefruitLE nRF51         |  1.9.6  |                           |
+| Adafruit seesaw Library            |  1.2.0  |                           |
+| Adafruit ST7735 and ST7789 Library |  1.5.6  |                           |
+| Adafruit GFX Library               |  1.7.1  |                           |
+| ClosedCube OPT3001                 |  1.1.2  |                           |
+| Adafruit AS726X                    |  1.0.2  | *See Note 1*              |
+
+
+***Note 1:*** For the Arduino Nano, I have produced a slightly more compact from for this library, so that the entrire program can fit in the Nano Flash memory. For the Nano Every, you can use the standard 
+library.
+
 ## Limitations
 
 As the Arduino Nano flash memory is almost full (99%), we cannot include features like:
