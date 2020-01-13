@@ -1117,7 +1117,7 @@ static void setup_serial()
 {
   Serial.begin(115200);
   while(!Serial); // waits till hw ready in some Arduinos. Tight loo
-  Serial.println(F("Sketch version: " GIT_VERSION));
+  Serial.println("Version: " GIT_VERSION);
 }
 
 /* ************************************************************************** */ 
@@ -1126,7 +1126,7 @@ static void setup_ble()
 {
   extern Adafruit_BluefruitLE_SPI ble;
 
-  Serial.print(F("Bluefruit SPI..."));
+  Serial.print("Bluefruit SPI...");
   
   if ( !ble.begin(VERBOSE_MODE) ) {
     //error(F("could not be found!"));
@@ -1158,7 +1158,7 @@ static void setup_as7262()
   extern as7262_info_t as7262_info;
   extern Adafruit_AS726x ams;
  
-  Serial.print(F("AS7262..."));
+  Serial.print("AS7262...");
   // finds the 6 channel chip
   if(!ams.begin()){
     //error(F("could not be found!"));
@@ -1184,7 +1184,7 @@ static void setup_tft()
   extern Adafruit_ST7735     tft;
   extern tft_info_t          tft_info;
 
-  Serial.print(F("SeeSaw..."));
+  Serial.print("SeeSaw...");
   // acknowledges the Seesaw chip before sending commands to the TFT display
   if (!ss.begin()) {
     //error(F("could not be found!"));
@@ -1196,7 +1196,7 @@ static void setup_tft()
   ss.setBacklight(TFTWING_BACKLIGHT_ON/2);  // turn on the backlight
   tft_info.backlight = 50;
   //ss.setBacklightFreq(10);  // turn on the backlight
-  Serial.print(F("miniTFT..."));
+  Serial.print("miniTFT...");
   tft.initR(INITR_MINI160x80);   // initialize a ST7735S chip, mini display
   tft.setRotation(3);            
   tft.fillScreen(BLACK);
@@ -1210,7 +1210,7 @@ static void setup_opt3001()
   extern ClosedCube_OPT3001 opt3001;
   extern OPT3001_Config config;
 
-  Serial.print(F("OPT3001..."));
+  Serial.print("OPT3001...");
   opt3001.begin(OPT3001_ADDRESS);
 
   config.RangeNumber               = B1100;  // Automatic full-scale
