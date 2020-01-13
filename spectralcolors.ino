@@ -1129,8 +1129,8 @@ static void setup_ble()
   Serial.print("Bluefruit SPI...");
   
   if ( !ble.begin(VERBOSE_MODE) ) {
-    //error(F("could not be found!"));
-    error("could not be found!");
+    //error(F("not found!"));
+    error("not found!");
   }
 
   if ( FACTORYRESET_ENABLE && ! ble.factoryReset() ) {
@@ -1161,8 +1161,8 @@ static void setup_as7262()
   Serial.print("AS7262...");
   // finds the 6 channel chip
   if(!ams.begin()){
-    //error(F("could not be found!"));
-    error("could not be found!");      // Use RAM strings error(), saving flash memory
+    //error(F("not found!"));
+    error("not found!");      // Use RAM strings error(), saving flash memory
   }
   // as initialized by the AS7262 library
   // Note that in MODE 2, the exposure time is actually doubled
@@ -1187,8 +1187,8 @@ static void setup_tft()
   Serial.print("SeeSaw...");
   // acknowledges the Seesaw chip before sending commands to the TFT display
   if (!ss.begin()) {
-    //error(F("could not be found!"));
-    error("could not be found!");    // Use RAM strings error(), saving flash memory
+    //error(F("not found!"));
+    error("not found!");    // Use RAM strings error(), saving flash memory
   }
   Serial.println("ok"); 
  
@@ -1264,4 +1264,5 @@ void loop()
   action = get_action(screen, event);
   screen = get_next_screen(screen, event);
   action();  // execute the action
+
 }
